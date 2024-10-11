@@ -1,8 +1,10 @@
 pipeline {
-    agent { docker {
+    agent { 
+        docker {
             image 'python:3.12' // Use a specific Python image
             args '-v $WORKSPACE:/app' // Mount the workspace
-        }}
+        }
+    }
     environment {
         // IMAGE_NAME = 'sanjeevkt720/jenkins-flask-app'
         // IMAGE_TAG = "${IMAGE_NAME}:${env.BUILD_NUMBER}"
