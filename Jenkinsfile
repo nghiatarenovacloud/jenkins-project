@@ -21,6 +21,7 @@ pipeline {
                         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
                         sudo apt install -y unzip
                         unzip -o awscliv2.zip
+                        sudo rm -rf /usr/local/aws-cli
                         sudo ./aws/install --update
                         # Verify installations
                         aws --version
