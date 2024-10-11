@@ -19,25 +19,26 @@ pipeline {
         IMAGE_TAG = "${IMAGE_NAME}:${env.BUILD_NUMBER}"
     }
     stages {
-        // stage('Prebuild') {
-        //     steps {
-        //         script {
-        //             // Install Python and pip
-        //             sh '''
-        //                 sudo apt update
-        //                 sudo apt install python3 python3-pip -y
-        //             '''
+        stage('Prebuild') {
+            steps {
+                script {
+                    // Install Python and pip
+                    sh '''
+                        sudo apt update
+                        sudo apt install python3 python3-pip python3-venv -y
+                    '''
 
-        //             // Check Python installation
-        //             def pythonVersion = sh(script: 'python3 --version', returnStdout: true).trim()
-        //             echo "Python Version: ${pythonVersion}"
+                    // Create a virtual environment
+                    sh 'python3 -m venv venv'
 
-        //             // Check pip installation
-        //             def pipVersion = sh(script: 'pip3 --version', returnStdout: true).trim()
-        //             echo "pip Version: ${pipVersion}"
-        //         }
-        //     }
-        // }
+                    // Activate the virtual environment and install requirements
+                    sh '''
+                        source venv/bin/activate
+                        pip install -r requirements.txt
+                    '''
+                }
+            }
+        }
         
         stage('Checkout') {
             steps {
