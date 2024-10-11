@@ -35,12 +35,32 @@ pipeline {
                 script {
                     // Thêm người dùng Jenkins vào nhóm Docker
                     sh '''
-                        sudo usermod -aG docker jenkins || echo "User Jenkins already in docker group"
+                        echo "Thêm người dùng Jenkins vào nhóm Docker..."
+                        sudo usermod -aG docker jenkins || echo "Người dùng Jenkins đã có trong nhóm docker"
+                        echo "Khởi động lại dịch vụ Jenkins..."
                         sudo systemctl restart jenkins
+                    '''
+                    
+                    // Kiểm tra quyền truy cập vào socket Docker
+                    sh '''
+                        echo "Kiểm tra quyền truy cập vào socket Docker..."
+                        ls -l /var/run/docker.sock
+                    '''
+                    
+                    // Thay đổi quyền truy cập nếu cần
+                    sh '''
+                        echo "Thay đổi quyền truy cập nếu cần..."
+                        sudo chmod 666 /var/run/docker.sock
+                    '''
+                    
+                    // Xác minh quyền truy cập
+                    sh '''
+                        echo "Xác minh quyền truy cập Docker..."
+                        sudo -u jenkins docker ps
                     '''
                 }
             }
-        }    
+        } 
 
         stage('Prebuild') {
             steps {
