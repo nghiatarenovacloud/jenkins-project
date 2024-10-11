@@ -2,7 +2,7 @@ pipeline {
     agent { 
         dockerContainer {
             image 'python:3.12' // Use a specific Python image
-            args '-v $WORKSPACE:/app' // Mount the workspace
+            
         }
     }
     environment {
@@ -37,16 +37,7 @@ pipeline {
         //         }
         //     }
         // }
-        stage('Install Requirements') {
-            steps {
-                script {
-                    // Change to the app directory
-                    sh 'cd /app'
-                    // Install requirements
-                    sh 'pip install -r requirements.txt'
-                }
-            }
-        }
+        
         stage('Checkout') {
             steps {
                 git url: 'https://github.com/nghiatarenovacloud/jenkins-project.git', branch: 'main'
