@@ -13,17 +13,21 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 script {
-                    // Install Python, AWS CLI, and Docker
+                    // Install Python, Docker, and AWS CLI
                     sh '''
                         sudo apt update
-                        sudo apt install -y python3 python3-pip python3-venv awscli docker.io
+                        sudo apt install -y python3 python3-pip python3-venv docker.io
+                        # Install AWS CLI using the official script
+                        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+                        unzip awscliv2.zip
+                        sudo ./aws/install
                         # Verify installations
                         aws --version
                         docker --version
                     '''
                 }
             }
-        }
+        }       
 
         stage('Prebuild') {
             steps {
