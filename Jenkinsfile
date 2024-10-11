@@ -5,7 +5,7 @@ pipeline {
             
     //     // }
     // }
-    agent any
+    agent {label workernode}
     environment {
         // IMAGE_NAME = 'sanjeevkt720/jenkins-flask-app'
         // IMAGE_TAG = "${IMAGE_NAME}:${env.BUILD_NUMBER}"
