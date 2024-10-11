@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: flask-app
-        image: 879654127886.dkr.ecr.ap-southeast-1.amazonaws.com/nghia-cicd-jenkins:latest
+        image: 879654127886.dkr.ecr.ap-southeast-1.amazonaws.com/nghia-cicd-jenkins:17
         ports:
         - containerPort: 5000
         resources:
