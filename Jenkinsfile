@@ -1,6 +1,6 @@
 pipeline {
     agent { 
-        docker {
+        dockerContainer {
             image 'python:3.12' // Use a specific Python image
             args '-v $WORKSPACE:/app' // Mount the workspace
         }
