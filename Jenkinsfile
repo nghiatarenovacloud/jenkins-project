@@ -41,8 +41,10 @@ pipeline {
         }
         stage('Test') {
             steps {
-                sh "pytest"
-                sh "whoami"
+                sh '''
+                    . venv/bin/activate  # Activate the virtual environment
+                    ./venv/bin/pytest  # Use the full path to pytest
+                '''
             }
         }
         stage('Login to ECR') {
