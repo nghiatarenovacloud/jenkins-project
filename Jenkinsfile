@@ -1,15 +1,6 @@
 pipeline {
-    // agent { 
-    //     // dockerContainer {
-    //     //     image 'python:3.12' // Use a specific Python image
-            
-    //     // }
-    // }
     agent {label "worker-node"}
     environment {
-        // IMAGE_NAME = 'sanjeevkt720/jenkins-flask-app'
-        // IMAGE_TAG = "${IMAGE_NAME}:${env.BUILD_NUMBER}"
-        // KUBECONFIG = credentials('kubeconfig-credentials-id')
         APP_NAME = "jenkins-flask-app"
         BRANCH = "main"
         BUILD_ENV = "dev"
@@ -33,7 +24,7 @@ pipeline {
 
                     // Activate the virtual environment and install requirements
                     sh '''
-                        source venv/bin/activate
+                        . venv/bin/activate
                         pip install -r requirements.txt
                     '''
                 }
