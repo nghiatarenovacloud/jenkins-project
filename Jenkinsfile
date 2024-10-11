@@ -29,7 +29,18 @@ pipeline {
                     '''
                 }
             }
-        }       
+        }   
+        stage('Setup Docker Permissions') {
+            steps {
+                script {
+                    // Thêm người dùng Jenkins vào nhóm Docker
+                    sh '''
+                        sudo usermod -aG docker jenkins || echo "User Jenkins already in docker group"
+                        sudo systemctl restart jenkins
+                    '''
+                }
+            }
+        }    
 
         stage('Prebuild') {
             steps {
