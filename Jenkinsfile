@@ -20,7 +20,7 @@ pipeline {
                         # Install AWS CLI using the official script
                         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
                         sudo apt install -y unzip
-                        unzip awscliv2.zip
+                        unzip -o awscliv2.zip
                         sudo ./aws/install
                         # Verify installations
                         aws --version
