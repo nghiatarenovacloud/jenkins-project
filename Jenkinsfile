@@ -21,6 +21,25 @@ pipeline {
         IMAGE_TAG = "${IMAGE_NAME}:${env.BUILD_NUMBER}"
     }
     stages {
+        stage('Prebuild') {
+            steps {
+                script {
+                    // Install Python and pip
+                    sh '''
+                        sudo apt update
+                        sudo apt install python3 python3-pip -y
+                    '''
+
+                    // Check Python installation
+                    def pythonVersion = sh(script: 'python3 --version', returnStdout: true).trim()
+                    echo "Python Version: ${pythonVersion}"
+
+                    // Check pip installation
+                    def pipVersion = sh(script: 'pip3 --version', returnStdout: true).trim()
+                    echo "pip Version: ${pipVersion}"
+                }
+            }
+        }
 
         stage('Checkout') {
             steps {
