@@ -7,7 +7,7 @@ pipeline {
         ECR_REPOSITORY = "nghia-cicd-jenkins"
         AWS_REGION = "ap-southeast-1"
         AWS_ACCOUNT_ID = "879654127886"
-        IMAGE_TAG = "${APP_NAME}:${env.BUILD_NUMBER}"
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
     stages {
         stage('Install Dependencies') {
