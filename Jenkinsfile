@@ -1,5 +1,8 @@
 pipeline {
-    agent { label "worker-node"}
+    agent { docker {
+            image 'python:3.12' // Use a specific Python image
+            args '-v $WORKSPACE:/app' // Mount the workspace
+        }}
     environment {
         // IMAGE_NAME = 'sanjeevkt720/jenkins-flask-app'
         // IMAGE_TAG = "${IMAGE_NAME}:${env.BUILD_NUMBER}"
@@ -10,37 +13,38 @@ pipeline {
         ECR_REPOSITORY = "nghia-cicd-jenkins"
         AWS_REGION = "ap-southeast-1"
         AWS_ACCOUNT_ID = "879654127886"
-        
-        CODEARTIFACT_REPOSITORY = "oxii-codeartifact"
-        CONTAINER_NAME = "srt-iotp-kex-container"
-        PACKAGE_NAME = ''
-        COMMIT_ID = ''
-        DATE = ''
-        CODEARTIFACT_TAG = ''
-        LATEST_VERSION = ''
         IMAGE_TAG = "${IMAGE_NAME}:${env.BUILD_NUMBER}"
     }
     stages {
-        stage('Prebuild') {
+        // stage('Prebuild') {
+        //     steps {
+        //         script {
+        //             // Install Python and pip
+        //             sh '''
+        //                 sudo apt update
+        //                 sudo apt install python3 python3-pip -y
+        //             '''
+
+        //             // Check Python installation
+        //             def pythonVersion = sh(script: 'python3 --version', returnStdout: true).trim()
+        //             echo "Python Version: ${pythonVersion}"
+
+        //             // Check pip installation
+        //             def pipVersion = sh(script: 'pip3 --version', returnStdout: true).trim()
+        //             echo "pip Version: ${pipVersion}"
+        //         }
+        //     }
+        // }
+        stage('Install Requirements') {
             steps {
                 script {
-                    // Install Python and pip
-                    sh '''
-                        sudo apt update
-                        sudo apt install python3 python3-pip -y
-                    '''
-
-                    // Check Python installation
-                    def pythonVersion = sh(script: 'python3 --version', returnStdout: true).trim()
-                    echo "Python Version: ${pythonVersion}"
-
-                    // Check pip installation
-                    def pipVersion = sh(script: 'pip3 --version', returnStdout: true).trim()
-                    echo "pip Version: ${pipVersion}"
+                    // Change to the app directory
+                    sh 'cd /app'
+                    // Install requirements
+                    sh 'pip install -r requirements.txt'
                 }
             }
         }
-
         stage('Checkout') {
             steps {
                 git url: 'https://github.com/nghiatarenovacloud/jenkins-project.git', branch: 'main'
