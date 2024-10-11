@@ -13,7 +13,7 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 script {
-                    // Install Python, Docker, and AWS CLI, unzip
+                    // Install Python, Docker, and AWS CLI, unzip, kubectl
                     sh '''
                         sudo apt update
                         sudo apt install -y python3 python3-pip python3-venv docker.io
@@ -26,6 +26,10 @@ pipeline {
                         # Verify installations
                         aws --version
                         docker --version
+                        curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x ./kubectl
+sudo mv ./kubectl /usr/local/bin/kubectl
+                        kubectl version --client
                     '''
                 }
             }
