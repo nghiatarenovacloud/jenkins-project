@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: flask-app
-        image: sanjeevkt720/jenkins-flask-app
+        image: 879654127886.dkr.ecr.ap-southeast-1.amazonaws.com/nghia-cicd-jenkins:latest
         ports:
         - containerPort: 5000
         resources:
