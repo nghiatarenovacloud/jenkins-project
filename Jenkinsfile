@@ -1,10 +1,11 @@
 pipeline {
-    agent { 
-        dockerContainer {
-            image 'python:3.12' // Use a specific Python image
+    // agent { 
+    //     // dockerContainer {
+    //     //     image 'python:3.12' // Use a specific Python image
             
-        }
-    }
+    //     // }
+    // }
+    agent any
     environment {
         // IMAGE_NAME = 'sanjeevkt720/jenkins-flask-app'
         // IMAGE_TAG = "${IMAGE_NAME}:${env.BUILD_NUMBER}"
