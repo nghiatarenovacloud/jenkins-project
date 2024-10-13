@@ -7,37 +7,33 @@ pipeline {
         ECR_REPOSITORY = "nghia-cicd-jenkins"
         AWS_REGION = "ap-southeast-1"
         AWS_ACCOUNT_ID = "879654127886"
-        IMAGE_TAG = "${env.BUILD_NUMBER}"
-        EMAIL_RECIPIENT= "nghia.ta@renovacloud.com"
-        APPROVER_EMAIL="nghia.ta@renovacloud.com"
+        COMMIT_ID = "${env.GIT_COMMIT.substring(0, 7)}" // Get the first 7 characters of the commit ID
+        IMAGE_TAG = "${new Date().format('HH-dd-MM-yy')}-${COMMIT_ID}" // Format tag for image
+        EMAIL_RECIPIENT = "nghia.ta@renovacloud.com"
+        APPROVER_EMAIL = "nghia.ta@renovacloud.com"
+        EKS_CLUSTER = "nghia-test-eks"
     }
     stages {
         stage('Install Dependencies') {
             steps {
                 script {
-                    // Install Python, Docker, and AWS CLI, unzip, kubectl
                     sh '''
                         sudo apt update
-                        sudo apt install -y python3 python3-pip python3-venv docker.io
-                        # Install AWS CLI using the official script
+                        sudo apt install -y python3 python3-pip python3-venv docker.io unzip
                         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-                        sudo apt install -y unzip
                         unzip -o awscliv2.zip
-                        sudo rm -rf /usr/local/aws-cli
                         sudo ./aws/install --update
-                        # Verify installations
                         aws --version
                         docker --version
                         curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
-chmod +x ./kubectl
-sudo mv ./kubectl /usr/local/bin/kubectl
+                        chmod +x ./kubectl
+                        sudo mv ./kubectl /usr/local/bin/kubectl
                         kubectl version --client
-                         # Install Trivy
-                        sudo apt-get install wget apt-transport-https gnupg lsb-release
+                        sudo apt-get install -y wget apt-transport-https gnupg lsb-release
                         wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
-                        echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
+                        echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
                         sudo apt-get update
-                        sudo apt-get install trivy
+                        sudo apt-get install -y trivy
                         trivy --version
                     '''
                 }
@@ -46,29 +42,22 @@ sudo mv ./kubectl /usr/local/bin/kubectl
         stage('Setup Docker Permissions') {
             steps {
                 script {
-                    // Add user to group Docker
                     sh '''
-                        echo "Add user to group Docker..."
-                        sudo usermod -aG docker jenkins || echo "Người dùng Jenkins đã có trong nhóm docker"
-                        echo "Restart service Jenkins..."
+                        echo "Adding Jenkins user to Docker group..."
+                        sudo usermod -aG docker jenkins || echo "User Jenkins is already in the Docker group."
+                        echo "Restarting Jenkins service..."
                         sudo systemctl restart jenkins
                     '''
-                    
-                    // Check permission for socket Docker
                     sh '''
-                        echo "Check permission for socket Docker..."
+                        echo "Checking permissions for Docker socket..."
                         ls -l /var/run/docker.sock
                     '''
-                    
-                    // Change permission 
                     sh '''
-                        echo "Change permission..."
+                        echo "Changing permissions for Docker socket..."
                         sudo chmod 666 /var/run/docker.sock
                     '''
-                    
-                    // Authentication
                     sh '''
-                        echo "Authentication Docker..."
+                        echo "Authenticating Docker..."
                         sudo -u jenkins docker ps
                     '''
                 }
@@ -77,29 +66,28 @@ sudo mv ./kubectl /usr/local/bin/kubectl
 
         stage('Prebuild') {
             steps {
-                // Create a virtual environment
-                sh 'python3 -m venv venv'
+                sh 'python3 -m venv venv' // Create a virtual environment
             }
         }
         
         stage('Checkout') {
             steps {
                 git url: 'https://github.com/nghiatarenovacloud/jenkins-project.git', branch: 'main'
-                sh "ls"
+                sh "ls" // List files for verification
             }
         }
         
         stage('Setup') {
             steps {
-                sh "./venv/bin/pip install -r requirements.txt" 
+                sh "./venv/bin/pip install -r requirements.txt" // Install dependencies
             }
         }
 
         stage('Test') {
             steps {
                 sh '''
-                    . venv/bin/activate  # Activate the virtual environment
-                    ./venv/bin/pytest  # Use the full path to pytest
+                    . venv/bin/activate
+                    ./venv/bin/pytest // Run tests
                 '''
             }
         }
@@ -116,24 +104,23 @@ sudo mv ./kubectl /usr/local/bin/kubectl
         stage('Build Docker Image') {
             steps {
                 sh 'echo "Building Docker image..."'
-                sh 'docker builder prune --force'
-                sh "docker build --no-cache -t ${APP_NAME}:${IMAGE_TAG} ."
+                sh 'docker builder prune --force' // Clean up unused Docker build cache
+                sh "docker build --no-cache -t ${APP_NAME}:${IMAGE_TAG} ." // Build the Docker image
                 sh 'echo "Listing Docker images..."'
                 sh 'docker images'
                 sh "echo \"Tagging Docker image with IMAGE_TAG\""
                 sh "docker tag ${APP_NAME}:${IMAGE_TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}"
             }
         }
+
         stage('Scan Docker Image with Trivy') {
             steps {
                 script {
                     sh 'echo "Scanning Docker image for vulnerabilities..."'
                     def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
                     
-                    // Wite to file log
                     writeFile file: 'trivy-scan-results.log', text: scanResult
                     
-                    // Check HIGH và CRITICAL
                     def highVulns = scanResult.findAll(/.*HIGH.*/)
                     def criticalVulns = scanResult.findAll(/.*CRITICAL.*/)
                     
@@ -151,30 +138,21 @@ sudo mv ./kubectl /usr/local/bin/kubectl
                 }
             }
         }
+
         stage('Push Docker Image') {
             steps {
                 sh 'echo "Pushing Docker image to ECR..."'
                 sh "docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}"
-                echo "Docker image pushed successfully"
+                echo "Docker image pushed successfully."
             }
         }
-        stage('Scan Docker Image with Trivy') {
-            steps {
-                script {
-                    sh 'echo "Scanning Docker image for vulnerabilities..."'
-                    sh "trivy image --severity HIGH,CRITICAL ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG} --exit-code 1"
-                }
-            }
-        }
+
         stage('Manual Approval') {
             steps {
                 script {
-                    // Gửi email yêu cầu phê duyệt
                     mail to: APPROVER_EMAIL,
                          subject: "Job '${env.JOB_BASE_NAME}' (${env.BUILD_NUMBER}) is waiting for input",
-                         body: "Please go to console output of ${env.BUILD_URL} to approve or reject."
-
-                    // Chờ phê duyệt từ người dùng
+                         body: "Please go to the console output of ${env.BUILD_URL} to approve or reject."
                     def userInput = input(id: 'userInput', message: 'Do you approve the deployment?', ok: 'Approve')
                 }
             }
@@ -182,8 +160,12 @@ sudo mv ./kubectl /usr/local/bin/kubectl
 
         stage('Deploy to EKS Cluster') {
             steps {
-                sh "kubectl apply -f deployment.yaml"
-                echo "Deployed to EKS Cluster"
+                script {
+                    sh "aws eks --region ${AWS_REGION} update-kubeconfig --name ${EKS_CLUSTER}"
+                    sh "kubectl config current-context"
+                    sh "kubectl apply -f deployment.yaml" // Deploy the application to EKS
+                    echo "Deployed to EKS Cluster."
+                }
             }
         }
     }
