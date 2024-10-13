@@ -8,6 +8,8 @@ pipeline {
         AWS_REGION = "ap-southeast-1"
         AWS_ACCOUNT_ID = "879654127886"
         IMAGE_TAG = "${env.BUILD_NUMBER}"
+        EMAIL_RECIPIENT= "nghia.ta@renovacloud.com"
+        APPROVER_EMAIL="nghia.ta@renovacloud.com"
     }
     stages {
         stage('Install Dependencies') {
@@ -30,6 +32,13 @@ pipeline {
 chmod +x ./kubectl
 sudo mv ./kubectl /usr/local/bin/kubectl
                         kubectl version --client
+                         # Install Trivy
+                        sudo apt-get install wget apt-transport-https gnupg lsb-release
+                        wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+                        echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
+                        sudo apt-get update
+                        sudo apt-get install trivy
+                        trivy --version
                     '''
                 }
             }
@@ -37,29 +46,29 @@ sudo mv ./kubectl /usr/local/bin/kubectl
         stage('Setup Docker Permissions') {
             steps {
                 script {
-                    // Thêm người dùng Jenkins vào nhóm Docker
+                    // Add user to group Docker
                     sh '''
-                        echo "Thêm người dùng Jenkins vào nhóm Docker..."
+                        echo "Add user to group Docker..."
                         sudo usermod -aG docker jenkins || echo "Người dùng Jenkins đã có trong nhóm docker"
-                        echo "Khởi động lại dịch vụ Jenkins..."
+                        echo "Restart service Jenkins..."
                         sudo systemctl restart jenkins
                     '''
                     
-                    // Kiểm tra quyền truy cập vào socket Docker
+                    // Check permission for socket Docker
                     sh '''
-                        echo "Kiểm tra quyền truy cập vào socket Docker..."
+                        echo "Check permission for socket Docker..."
                         ls -l /var/run/docker.sock
                     '''
                     
-                    // Thay đổi quyền truy cập nếu cần
+                    // Change permission 
                     sh '''
-                        echo "Thay đổi quyền truy cập nếu cần..."
+                        echo "Change permission..."
                         sudo chmod 666 /var/run/docker.sock
                     '''
                     
-                    // Xác minh quyền truy cập
+                    // Authentication
                     sh '''
-                        echo "Xác minh quyền truy cập Docker..."
+                        echo "Authentication Docker..."
                         sudo -u jenkins docker ps
                     '''
                 }
@@ -115,12 +124,59 @@ sudo mv ./kubectl /usr/local/bin/kubectl
                 sh "docker tag ${APP_NAME}:${IMAGE_TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}"
             }
         }
+        stage('Scan Docker Image with Trivy') {
+            steps {
+                script {
+                    sh 'echo "Scanning Docker image for vulnerabilities..."'
+                    def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
+                    
+                    // Wite to file log
+                    writeFile file: 'trivy-scan-results.log', text: scanResult
+                    
+                    // Check HIGH và CRITICAL
+                    def highVulns = scanResult.findAll(/.*HIGH.*/)
+                    def criticalVulns = scanResult.findAll(/.*CRITICAL.*/)
+                    
+                    if (highVulns) {
+                        mail to: EMAIL_RECIPIENT,
+                             subject: "Trivy Scan Results - HIGH Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
+                             body: "The following HIGH vulnerabilities were found in the image:\n\n${highVulns.join('\n')}\n\nPlease address these issues."
+                    }
 
+                    if (criticalVulns) {
+                        mail to: EMAIL_RECIPIENT,
+                             subject: "Trivy Scan Results - CRITICAL Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
+                             body: "The following CRITICAL vulnerabilities were found in the image:\n\n${criticalVulns.join('\n')}\n\nImmediate action is required!"
+                    }
+                }
+            }
+        }
         stage('Push Docker Image') {
             steps {
                 sh 'echo "Pushing Docker image to ECR..."'
                 sh "docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}"
                 echo "Docker image pushed successfully"
+            }
+        }
+        stage('Scan Docker Image with Trivy') {
+            steps {
+                script {
+                    sh 'echo "Scanning Docker image for vulnerabilities..."'
+                    sh "trivy image --severity HIGH,CRITICAL ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG} --exit-code 1"
+                }
+            }
+        }
+        stage('Manual Approval') {
+            steps {
+                script {
+                    // Gửi email yêu cầu phê duyệt
+                    mail to: APPROVER_EMAIL,
+                         subject: "Job '${env.JOB_BASE_NAME}' (${env.BUILD_NUMBER}) is waiting for input",
+                         body: "Please go to console output of ${env.BUILD_URL} to approve or reject."
+
+                    // Chờ phê duyệt từ người dùng
+                    def userInput = input(id: 'userInput', message: 'Do you approve the deployment?', ok: 'Approve')
+                }
             }
         }
 
