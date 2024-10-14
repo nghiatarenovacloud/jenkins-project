@@ -134,7 +134,7 @@ pipeline {
             steps {
                 script {
                     sh 'echo "Scanning Docker image for vulnerabilities..."'
-            def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL --format json ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
+            def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL  ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
 
             // Ghi kết quả quét vào file log
             writeFile file: 'trivy-scan-results.log', text: scanResult
