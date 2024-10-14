@@ -136,29 +136,65 @@ pipeline {
                     def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL --format json ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
 
                     writeFile file: 'trivy-scan-results.json', text: scanResult
-                    sh '''
-                        aws logs create-log-group --log-group-name $LOG_GROUP_NAME || true
-                        aws logs create-log-stream --log-group-name $LOG_GROUP_NAME --log-stream-name $LOG_STREAM_NAME || true
-                        aws logs put-log-events --log-group-name $LOG_GROUP_NAME --log-stream-name $LOG_STREAM_NAME --log-events file://trivy-scan-results.json
-                    '''
-                    // Use a simple split and filter approach
-                    // def highVulns = scanResult.split('\n').findAll { it.contains('HIGH') }
-                    // def criticalVulns = scanResult.split('\n').findAll { it.contains('CRITICAL') }
 
-                    // if (highVulns) {
-                    //     mail to: EMAIL_RECIPIENT,
-                    //         subject: "Trivy Scan Results - HIGH Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
-                    //         body: "The following HIGH vulnerabilities were found in the image:\n\n${highVulns.join('\n')}\n\nPlease address these issues."
-                    // }
+                    // Check if the JSON is valid
+                    if (isValidJson(scanResult)) {
+                        // Check if log group exists
+                        def logGroupExists = sh(script: "aws logs describe-log-groups --log-group-name-prefix $LOG_GROUP_NAME", returnStdout: true).contains(LOG_GROUP_NAME)
+                        
+                        // Create log group if it doesn't exist
+                        if (!logGroupExists) {
+                            sh "aws logs create-log-group --log-group-name $LOG_GROUP_NAME"
+                        }
 
-                    // if (criticalVulns) {
-                    //     mail to: EMAIL_RECIPIENT,
-                    //         subject: "Trivy Scan Results - CRITICAL Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
-                    //         body: "The following CRITICAL vulnerabilities were found in the image:\n\n${criticalVulns.join('\n')}\n\nImmediate action is required!"
-                    // }
+                        // Check if log stream exists
+                        def logStreamExists = sh(script: "aws logs describe-log-streams --log-group-name $LOG_GROUP_NAME --log-stream-name-prefix $LOG_STREAM_NAME", returnStdout: true).contains(LOG_STREAM_NAME)
+                        
+                        // Create log stream if it doesn't exist
+                        if (!logStreamExists) {
+                            sh "aws logs create-log-stream --log-group-name $LOG_GROUP_NAME --log-stream-name $LOG_STREAM_NAME"
+                        }
+
+                        // Put log events
+                        sh '''
+                            aws logs put-log-events --log-group-name $LOG_GROUP_NAME --log-stream-name $LOG_STREAM_NAME --log-events file://trivy-scan-results.json
+                        '''
+                    } else {
+                        error("Invalid JSON format in trivy-scan-results.json")
+                    }
+
+                    // Uncomment the following lines to send email notifications based on vulnerabilities found
+                    /*
+                    def highVulns = scanResult.split('\n').findAll { it.contains('HIGH') }
+                    def criticalVulns = scanResult.split('\n').findAll { it.contains('CRITICAL') }
+
+                    if (highVulns) {
+                        mail to: EMAIL_RECIPIENT,
+                            subject: "Trivy Scan Results - HIGH Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
+                            body: "The following HIGH vulnerabilities were found in the image:\n\n${highVulns.join('\n')}\n\nPlease address these issues."
+                    }
+
+                    if (criticalVulns) {
+                        mail to: EMAIL_RECIPIENT,
+                            subject: "Trivy Scan Results - CRITICAL Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
+                            body: "The following CRITICAL vulnerabilities were found in the image:\n\n${criticalVulns.join('\n')}\n\nImmediate action is required!"
+                    }
+                    */
                 }
             }
-        }
+}
+
+            // Function to validate JSON
+            boolean isValidJson(String json) {
+                try {
+                    new groovy.json.JsonSlurper().parseText(json)
+                    return true
+                } catch (Exception e) {
+                    return false
+                }
+            }
+
+
 
         stage('Push Docker Image') {
             steps {
