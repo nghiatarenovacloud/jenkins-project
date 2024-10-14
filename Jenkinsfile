@@ -133,13 +133,13 @@ pipeline {
             steps {
                 script {
                     sh 'echo "Scanning Docker image for vulnerabilities..."'
-                    def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
+                    def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL --format json ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
 
-                    writeFile file: 'trivy-scan-results.log', text: scanResult
+                    writeFile file: 'trivy-scan-results.json', text: scanResult
                     sh '''
                         aws logs create-log-group --log-group-name $LOG_GROUP_NAME || true
                         aws logs create-log-stream --log-group-name $LOG_GROUP_NAME --log-stream-name $LOG_STREAM_NAME || true
-                        aws logs put-log-events --log-group-name $LOG_GROUP_NAME --log-stream-name $LOG_STREAM_NAME --log-events file://trivy-scan-results.log
+                        aws logs put-log-events --log-group-name $LOG_GROUP_NAME --log-stream-name $LOG_STREAM_NAME --log-events file://trivy-scan-results.json
                     '''
                     // Use a simple split and filter approach
                     // def highVulns = scanResult.split('\n').findAll { it.contains('HIGH') }
