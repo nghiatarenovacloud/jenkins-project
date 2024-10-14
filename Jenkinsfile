@@ -134,13 +134,30 @@ pipeline {
             steps {
                 script {
                     sh 'echo "Scanning Docker image for vulnerabilities..."'
-                    def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL --format json ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
+            def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL --format json ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
 
-                    writeFile file: 'trivy-scan-results.log', text: scanResult
+            // Ghi kết quả quét vào file log
+            writeFile file: 'trivy-scan-results.log', text: scanResult
 
-                    // Use a simple split and filter approach
-                    def highVulns = scanResult.split('\n').findAll { it.contains('HIGH') }
-                    def criticalVulns = scanResult.split('\n').findAll { it.contains('CRITICAL') }
+            // Phân tích lỗ hổng
+            def highVulns = scanResult.split('\n').findAll { it.contains('HIGH') }
+            def criticalVulns = scanResult.split('\n').findAll { it.contains('CRITICAL') }
+
+            // In ra kết quả phân tích
+            echo "Trivy Scan Results:"
+            if (highVulns) {
+                echo "HIGH Vulnerabilities Found:"
+                highVulns.each { echo it }
+            } else {
+                echo "No HIGH vulnerabilities found."
+            }
+
+            if (criticalVulns) {
+                echo "CRITICAL Vulnerabilities Found:"
+                criticalVulns.each { echo it }
+            } else {
+                echo "No CRITICAL vulnerabilities found."
+            }
 
                     // if (highVulns) {
                     //     mail to: EMAIL_RECIPIENT,
