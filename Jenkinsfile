@@ -46,8 +46,8 @@ pipeline {
                     sh '''
                         echo "Cleaning up old builds and images..."
                         docker image prune -af
-                        # Trigger Groovy script for discarding old builds
-                        curl -X POST http://localhost:8080/job/YOUR_JOB_NAME/build?token=YOUR_TOKEN
+                        docker system prune -af
+                        
                     '''
                 }
             }
