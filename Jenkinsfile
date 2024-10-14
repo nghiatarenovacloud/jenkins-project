@@ -38,7 +38,20 @@ pipeline {
                     '''
                 }
             }
-        }   
+        }  
+        stage('Disk Space Cleanup') {
+            steps {
+                script {
+                    // Enable Global Build Discarders
+                    sh '''
+                        echo "Cleaning up old builds and images..."
+                        docker image prune -af
+                        # Trigger Groovy script for discarding old builds
+                        curl -X POST http://localhost:8080/job/YOUR_JOB_NAME/build?token=YOUR_TOKEN
+                    '''
+                }
+            }
+        } 
         stage('Setup Docker Permissions') {
             steps {
                 script {
@@ -104,6 +117,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh 'echo "Building Docker image..."'
+                sh 'docker system prune -af'
                 sh 'docker builder prune --force' // Clean up unused Docker build cache
                 sh "docker build --no-cache -t ${APP_NAME}:${IMAGE_TAG} ." // Build the Docker image
                 sh 'echo "Listing Docker images..."'
