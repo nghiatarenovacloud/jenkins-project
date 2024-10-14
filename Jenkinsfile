@@ -128,30 +128,31 @@ pipeline {
         }
 
         stage('Scan Docker Image with Trivy') {
-            steps {
-                script {
-                    sh 'echo "Scanning Docker image for vulnerabilities..."'
-                    def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
-                    
-                    writeFile file: 'trivy-scan-results.log', text: scanResult
-                    
-                    def highVulns = scanResult.findAll(/.*HIGH.*/)
-                    def criticalVulns = scanResult.findAll(/.*CRITICAL.*/)
-                    
-                    if (highVulns) {
-                        mail to: EMAIL_RECIPIENT,
-                             subject: "Trivy Scan Results - HIGH Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
-                             body: "The following HIGH vulnerabilities were found in the image:\n\n${highVulns.join('\n')}\n\nPlease address these issues."
-                    }
+    steps {
+        script {
+            sh 'echo "Scanning Docker image for vulnerabilities..."'
+            def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
 
-                    if (criticalVulns) {
-                        mail to: EMAIL_RECIPIENT,
-                             subject: "Trivy Scan Results - CRITICAL Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
-                             body: "The following CRITICAL vulnerabilities were found in the image:\n\n${criticalVulns.join('\n')}\n\nImmediate action is required!"
-                    }
-                }
+            writeFile file: 'trivy-scan-results.log', text: scanResult
+
+            // Use a simple split and filter approach
+            def highVulns = scanResult.split('\n').findAll { it.contains('HIGH') }
+            def criticalVulns = scanResult.split('\n').findAll { it.contains('CRITICAL') }
+
+            if (highVulns) {
+                mail to: EMAIL_RECIPIENT,
+                     subject: "Trivy Scan Results - HIGH Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
+                     body: "The following HIGH vulnerabilities were found in the image:\n\n${highVulns.join('\n')}\n\nPlease address these issues."
+            }
+
+            if (criticalVulns) {
+                mail to: EMAIL_RECIPIENT,
+                     subject: "Trivy Scan Results - CRITICAL Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
+                     body: "The following CRITICAL vulnerabilities were found in the image:\n\n${criticalVulns.join('\n')}\n\nImmediate action is required!"
             }
         }
+    }
+}
 
         stage('Push Docker Image') {
             steps {
