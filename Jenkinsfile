@@ -134,7 +134,7 @@ pipeline {
             steps {
                 script {
                     sh 'echo "Scanning Docker image for vulnerabilities..."'
-                    def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
+                    def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL --format json ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
 
                     writeFile file: 'trivy-scan-results.log', text: scanResult
 
@@ -142,17 +142,17 @@ pipeline {
                     def highVulns = scanResult.split('\n').findAll { it.contains('HIGH') }
                     def criticalVulns = scanResult.split('\n').findAll { it.contains('CRITICAL') }
 
-                    if (highVulns) {
-                        mail to: EMAIL_RECIPIENT,
-                            subject: "Trivy Scan Results - HIGH Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
-                            body: "The following HIGH vulnerabilities were found in the image:\n\n${highVulns.join('\n')}\n\nPlease address these issues."
-                    }
+                    // if (highVulns) {
+                    //     mail to: EMAIL_RECIPIENT,
+                    //         subject: "Trivy Scan Results - HIGH Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
+                    //         body: "The following HIGH vulnerabilities were found in the image:\n\n${highVulns.join('\n')}\n\nPlease address these issues."
+                    // }
 
-                    if (criticalVulns) {
-                        mail to: EMAIL_RECIPIENT,
-                            subject: "Trivy Scan Results - CRITICAL Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
-                            body: "The following CRITICAL vulnerabilities were found in the image:\n\n${criticalVulns.join('\n')}\n\nImmediate action is required!"
-                    }
+                    // if (criticalVulns) {
+                    //     mail to: EMAIL_RECIPIENT,
+                    //         subject: "Trivy Scan Results - CRITICAL Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
+                    //         body: "The following CRITICAL vulnerabilities were found in the image:\n\n${criticalVulns.join('\n')}\n\nImmediate action is required!"
+                    // }
                 }
             }
         }
