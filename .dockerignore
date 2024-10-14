@@ -7,6 +7,6 @@ app.pyc
 *.pyd
 *.zip
 *.md
-*.txt
+commands.txt
 aws/
 venv/
