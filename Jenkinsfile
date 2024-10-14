@@ -1,12 +1,4 @@
-// Function to validate JSON
-            boolean isValidJson(String json) {
-                try {
-                    new groovy.json.JsonSlurper().parseText(json)
-                    return true
-                } catch (Exception e) {
-                    return false
-                }
-            }
+
 pipeline {
     agent { label "worker-node" }
     environment {
@@ -224,3 +216,12 @@ pipeline {
         }
     }
 }
+// Function to validate JSON
+            boolean isValidJson(String json) {
+                try {
+                    new groovy.json.JsonSlurper().parseText(json)
+                    return true
+                } catch (Exception e) {
+                    return false
+                }
+            }
