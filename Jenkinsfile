@@ -133,30 +133,39 @@ pipeline {
         stage('Scan Docker Image with Trivy') {
             steps {
                 script {
-                    sh 'echo "Scanning Docker image for vulnerabilities..."'
-            def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL  ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
+            //         sh 'echo "Scanning Docker image for vulnerabilities..."'
+            // def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL  ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
+
+            // // Ghi kết quả quét vào file log
+            // writeFile file: 'trivy-scan-results.log', text: scanResult
+
+            // // Phân tích lỗ hổng
+            // def highVulns = scanResult.split('\n').findAll { it.contains('HIGH') }
+            // def criticalVulns = scanResult.split('\n').findAll { it.contains('CRITICAL') }
+
+            // /// In ra kết quả phân tích
+            // if (highVulns) {
+            //     echo "Trivy Scan Results - HIGH Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}"
+            //     echo "The following HIGH vulnerabilities were found in the image:"
+            //     echo "${highVulns.join('\n')}"
+            //     echo "Please address these issues."
+            // }
+
+            // if (criticalVulns) {
+            //     echo "Trivy Scan Results - CRITICAL Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}"
+            //     echo "The following CRITICAL vulnerabilities were found in the image:"
+            //     echo "${criticalVulns.join('\n')}"
+            //     echo "Immediate action is required!"
+            // }
+            sh 'echo "Scanning Docker image for vulnerabilities..."'
+            def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL --format table ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
 
             // Ghi kết quả quét vào file log
             writeFile file: 'trivy-scan-results.log', text: scanResult
 
-            // Phân tích lỗ hổng
-            def highVulns = scanResult.split('\n').findAll { it.contains('HIGH') }
-            def criticalVulns = scanResult.split('\n').findAll { it.contains('CRITICAL') }
-
-            /// In ra kết quả phân tích
-            if (highVulns) {
-                echo "Trivy Scan Results - HIGH Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}"
-                echo "The following HIGH vulnerabilities were found in the image:"
-                echo "${highVulns.join('\n')}"
-                echo "Please address these issues."
-            }
-
-            if (criticalVulns) {
-                echo "Trivy Scan Results - CRITICAL Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}"
-                echo "The following CRITICAL vulnerabilities were found in the image:"
-                echo "${criticalVulns.join('\n')}"
-                echo "Immediate action is required!"
-            }
+            // In ra kết quả phân tích
+            echo "Trivy Scan Results for ${APP_NAME}:${IMAGE_TAG}"
+            echo scanResult
 
                     // if (highVulns) {
                     //     mail to: EMAIL_RECIPIENT,
