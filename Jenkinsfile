@@ -134,9 +134,9 @@ pipeline {
             steps {
                 script {
                     sh 'echo "Scanning Docker image for vulnerabilities..."'
-                    def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
+                    def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL --format json ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
 
-                    writeFile file: 'trivy-scan-results.log', text: scanResult
+                    writeFile file: 'trivy-scan-results.json', text: scanResult
                     // def jsonContent = readFile('trivy-scan-results.json')
                     // def jsonValid = isValidJson(jsonContent)
                     // if (jsonValid) {
@@ -216,6 +216,18 @@ pipeline {
         stage('Deploy to EKS Cluster') {
             steps {
                 script {
+                    // Đọc nội dung tệp deployment.yaml
+                    def deploymentFile = readFile('deployment.yaml')
+
+                    // Thay thế image trong tệp YAML với image mới nhất
+                    def newImage = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}"
+                    deploymentFile = deploymentFile.replaceAll(/(?<=image: ).*/, newImage)
+
+                    // Ghi lại tệp deployment đã cập nhật
+                    writeFile file: 'deployment.yaml', text: deploymentFile
+
+                    // In ra log để kiểm tra
+                    echo "Updated Deployment File: ${deploymentFile}"
                     sh "aws eks --region ${AWS_REGION} update-kubeconfig --name ${EKS_CLUSTER}"
                     sh "kubectl config current-context"
                     sh "kubectl apply -f deployment.yaml" // Deploy the application to EKS
