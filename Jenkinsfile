@@ -12,6 +12,8 @@ pipeline {
         EMAIL_RECIPIENT = "nghia.ta@renovacloud.com"
         APPROVER_EMAIL = "nghia.ta@renovacloud.com"
         EKS_CLUSTER = "nghia-test-eks"
+        LOG_GROUP_NAME = 'nghia-jenkins-ci'
+        LOG_STREAM_NAME = 'nghia-jenkins-ci-application'
     }
     stages {
         stage('Install Dependencies') {
@@ -128,31 +130,35 @@ pipeline {
         }
 
         stage('Scan Docker Image with Trivy') {
-    steps {
-        script {
-            sh 'echo "Scanning Docker image for vulnerabilities..."'
-            def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
+            steps {
+                script {
+                    sh 'echo "Scanning Docker image for vulnerabilities..."'
+                    def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
 
-            writeFile file: 'trivy-scan-results.log', text: scanResult
+                    writeFile file: 'trivy-scan-results.log', text: scanResult
+                    sh '''
+                        aws logs create-log-group --log-group-name $LOG_GROUP_NAME || true
+                        aws logs create-log-stream --log-group-name $LOG_GROUP_NAME --log-stream-name $LOG_STREAM_NAME || true
+                        aws logs put-log-events --log-group-name $LOG_GROUP_NAME --log-stream-name $LOG_STREAM_NAME --log-events file://trivy-scan-results.log
+                    '''
+                    // Use a simple split and filter approach
+                    // def highVulns = scanResult.split('\n').findAll { it.contains('HIGH') }
+                    // def criticalVulns = scanResult.split('\n').findAll { it.contains('CRITICAL') }
 
-            // Use a simple split and filter approach
-            def highVulns = scanResult.split('\n').findAll { it.contains('HIGH') }
-            def criticalVulns = scanResult.split('\n').findAll { it.contains('CRITICAL') }
+                    // if (highVulns) {
+                    //     mail to: EMAIL_RECIPIENT,
+                    //         subject: "Trivy Scan Results - HIGH Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
+                    //         body: "The following HIGH vulnerabilities were found in the image:\n\n${highVulns.join('\n')}\n\nPlease address these issues."
+                    // }
 
-            if (highVulns) {
-                mail to: EMAIL_RECIPIENT,
-                     subject: "Trivy Scan Results - HIGH Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
-                     body: "The following HIGH vulnerabilities were found in the image:\n\n${highVulns.join('\n')}\n\nPlease address these issues."
-            }
-
-            if (criticalVulns) {
-                mail to: EMAIL_RECIPIENT,
-                     subject: "Trivy Scan Results - CRITICAL Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
-                     body: "The following CRITICAL vulnerabilities were found in the image:\n\n${criticalVulns.join('\n')}\n\nImmediate action is required!"
+                    // if (criticalVulns) {
+                    //     mail to: EMAIL_RECIPIENT,
+                    //         subject: "Trivy Scan Results - CRITICAL Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
+                    //         body: "The following CRITICAL vulnerabilities were found in the image:\n\n${criticalVulns.join('\n')}\n\nImmediate action is required!"
+                    // }
+                }
             }
         }
-    }
-}
 
         stage('Push Docker Image') {
             steps {
