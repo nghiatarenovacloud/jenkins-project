@@ -134,20 +134,20 @@ pipeline {
             steps {
                 script {
                     sh 'echo "Scanning Docker image for vulnerabilities..."'
-                    def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL --format json ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
+                    def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL  ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
 
 
-                    writeFile file: 'trivy-scan-results.json', text: scanResult
-                    def jsonContent = readFile('trivy-scan-results.json')
-                    def jsonValid = isValidJson(jsonContent)
-                    if (jsonValid) {
-                    // Tiến hành gửi log
-                    sh '''
-                        aws logs put-log-events --log-group-name $LOG_GROUP_NAME --log-stream-name $LOG_STREAM_NAME --log-events file://trivy-scan-results.json
-                    '''
-                    } else {
-                        error("Invalid JSON format in trivy-scan-results.json")
-                    }
+                    writeFile file: 'trivy-scan-results.log', text: scanResult
+                    // def jsonContent = readFile('trivy-scan-results.json')
+                    // def jsonValid = isValidJson(jsonContent)
+                    // if (jsonValid) {
+                    
+                    // sh '''
+                    //     aws logs put-log-events --log-group-name $LOG_GROUP_NAME --log-stream-name $LOG_STREAM_NAME --log-events file://trivy-scan-results.json
+                    // '''
+                    // } else {
+                    //     error("Invalid JSON format in trivy-scan-results.json")
+                    // }
                     // // Check if the JSON is valid
                     // if (isValidJson(scanResult)) {
                     //     // Check if log group exists
