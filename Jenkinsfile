@@ -136,14 +136,14 @@ pipeline {
             //         sh 'echo "Scanning Docker image for vulnerabilities..."'
             // def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL  ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
 
-            // // Ghi kết quả quét vào file log
+            // Write scan result to file log
             // writeFile file: 'trivy-scan-results.log', text: scanResult
 
-            // // Phân tích lỗ hổng
+            // 
             // def highVulns = scanResult.split('\n').findAll { it.contains('HIGH') }
             // def criticalVulns = scanResult.split('\n').findAll { it.contains('CRITICAL') }
 
-            // /// In ra kết quả phân tích
+            // 
             // if (highVulns) {
             //     echo "Trivy Scan Results - HIGH Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}"
             //     echo "The following HIGH vulnerabilities were found in the image:"
@@ -205,17 +205,17 @@ pipeline {
         stage('Deploy to EKS Cluster') {
             steps {
                 script {
-                    // Đọc nội dung tệp deployment.yaml
+                    // Read deploment file
                     def deploymentFile = readFile('deployment.yaml')
 
-                    // Thay thế image trong tệp YAML với image mới nhất
+                    // Replace image in YAML with latest image
                     def newImage = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}"
                     deploymentFile = deploymentFile.replaceAll(/(?<=image: ).*/, newImage)
 
-                    // Ghi lại tệp deployment đã cập nhật
+                    // Update deployment file
                     writeFile file: 'deployment.yaml', text: deploymentFile
 
-                    // In ra log để kiểm tra
+                    // write to log
                     echo "Updated Deployment File: ${deploymentFile}"
                     sh "aws eks --region ${AWS_REGION} update-kubeconfig --name ${EKS_CLUSTER}"
                     sh "kubectl config current-context"
