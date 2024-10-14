@@ -134,48 +134,11 @@ pipeline {
             steps {
                 script {
                     sh 'echo "Scanning Docker image for vulnerabilities..."'
-                    def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL --format json ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
+                    def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
 
-                    // Ghi kết quả vào file
                     writeFile file: 'trivy-scan-results.log', text: scanResult
-                    // def jsonContent = readFile('trivy-scan-results.json')
-                    // def jsonValid = isValidJson(jsonContent)
-                    // if (jsonValid) {
-                    
-                    // sh '''
-                    //     aws logs put-log-events --log-group-name $LOG_GROUP_NAME --log-stream-name $LOG_STREAM_NAME --log-events file://trivy-scan-results.json
-                    // '''
-                    // } else {
-                    //     error("Invalid JSON format in trivy-scan-results.json")
-                    // }
-                    // // Check if the JSON is valid
-                    // if (isValidJson(scanResult)) {
-                    //     // Check if log group exists
-                    //     def logGroupExists = sh(script: "aws logs describe-log-groups --log-group-name-prefix $LOG_GROUP_NAME", returnStdout: true).contains(LOG_GROUP_NAME)
-                        
-                    //     // Create log group if it doesn't exist
-                    //     if (!logGroupExists) {
-                    //         sh "aws logs create-log-group --log-group-name $LOG_GROUP_NAME"
-                    //     }
 
-                    //     // Check if log stream exists
-                    //     def logStreamExists = sh(script: "aws logs describe-log-streams --log-group-name $LOG_GROUP_NAME --log-stream-name-prefix $LOG_STREAM_NAME", returnStdout: true).contains(LOG_STREAM_NAME)
-                        
-                    //     // Create log stream if it doesn't exist
-                    //     if (!logStreamExists) {
-                    //         sh "aws logs create-log-stream --log-group-name $LOG_GROUP_NAME --log-stream-name $LOG_STREAM_NAME"
-                    //     }
-
-                    //     // Put log events
-                    //     sh '''
-                    //         aws logs put-log-events --log-group-name $LOG_GROUP_NAME --log-stream-name $LOG_STREAM_NAME --log-events file://trivy-scan-results.json
-                    //     '''
-                    // } else {
-                    //     error("Invalid JSON format in trivy-scan-results.json")
-                    // }
-
-                    // Uncomment the following lines to send email notifications based on vulnerabilities found
-                    /*
+                    // Use a simple split and filter approach
                     def highVulns = scanResult.split('\n').findAll { it.contains('HIGH') }
                     def criticalVulns = scanResult.split('\n').findAll { it.contains('CRITICAL') }
 
@@ -190,10 +153,10 @@ pipeline {
                             subject: "Trivy Scan Results - CRITICAL Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
                             body: "The following CRITICAL vulnerabilities were found in the image:\n\n${criticalVulns.join('\n')}\n\nImmediate action is required!"
                     }
-                    */
                 }
             }
         }
+
 
         stage('Push Docker Image') {
             steps {
