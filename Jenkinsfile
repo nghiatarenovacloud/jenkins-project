@@ -143,17 +143,19 @@ pipeline {
             def highVulns = scanResult.split('\n').findAll { it.contains('HIGH') }
             def criticalVulns = scanResult.split('\n').findAll { it.contains('CRITICAL') }
 
-            // In ra kết quả phân tích
+            /// In ra kết quả phân tích
             if (highVulns) {
-                
-                    subject: "Trivy Scan Results - HIGH Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
-                    body: "The following HIGH vulnerabilities were found in the image:\n\n${highVulns.join('\n')}\n\nPlease address these issues."
+                echo "Trivy Scan Results - HIGH Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}"
+                echo "The following HIGH vulnerabilities were found in the image:"
+                echo "${highVulns.join('\n')}"
+                echo "Please address these issues."
             }
 
             if (criticalVulns) {
-                
-                    subject: "Trivy Scan Results - CRITICAL Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
-                    body: "The following CRITICAL vulnerabilities were found in the image:\n\n${criticalVulns.join('\n')}\n\nImmediate action is required!"
+                echo "Trivy Scan Results - CRITICAL Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}"
+                echo "The following CRITICAL vulnerabilities were found in the image:"
+                echo "${criticalVulns.join('\n')}"
+                echo "Immediate action is required!"
             }
 
                     // if (highVulns) {
