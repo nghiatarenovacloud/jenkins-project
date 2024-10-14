@@ -202,16 +202,16 @@ pipeline {
             }
         }
 
-        stage('Manual Approval') {
-            steps {
-                script {
-                    mail to: ${APPROVER_EMAIL}
-                         subject: "Job '${env.JOB_BASE_NAME}' (${env.BUILD_NUMBER}) is waiting for input",
-                         body: "Please go to the console output of ${env.BUILD_URL} to approve or reject."
-                    def userInput = input(id: 'userInput', message: 'Do you approve the deployment?', ok: 'Approve')
-                }
-            }
-        }
+        // stage('Manual Approval') {
+        //     steps {
+        //         script {
+        //             mail to: nghia.ta@renovacloud.com
+        //                  subject: "Job '${env.JOB_BASE_NAME}' (${env.BUILD_NUMBER}) is waiting for input",
+        //                  body: "Please go to the console output of ${env.BUILD_URL} to approve or reject."
+        //             def userInput = input(id: 'userInput', message: 'Do you approve the deployment?', ok: 'Approve')
+        //         }
+        //     }
+        // }
 
         stage('Deploy to EKS Cluster') {
             steps {
