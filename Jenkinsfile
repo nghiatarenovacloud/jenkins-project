@@ -87,7 +87,7 @@ pipeline {
             steps {
                 sh '''
                     . venv/bin/activate
-                    ./venv/bin/pytest // Run tests
+                    ./venv/bin/pytest 
                 '''
             }
         }
