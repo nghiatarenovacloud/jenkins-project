@@ -19,7 +19,6 @@ pipeline {
         SONARQUBE_TOKEN = credentials('5b5ef5ae4a11aa24388d8c734138fb5e14477e3e') // Jenkins credentials for SonarQube token
     }
     stages {
-        
         stage('Install Dependencies') {
             steps {
                 script {
