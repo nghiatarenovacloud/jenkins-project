@@ -66,21 +66,20 @@ pipeline {
             }
         }
 
-        // stage('Static Code Analysis with SonarQube') {
-        //     steps {
-        //         script {
-        //             sh '''
-        //                 echo "Running SonarQube analysis..."
-        //                 sonar-scanner \
-        //                   -Dsonar.projectKey=${APP_NAME} \
-        //                   -Dsonar.sources=. \
-        //                   -Dsonar.host.url=${SONARQUBE_URL} \
-        //                   -Dsonar.login=${SONARQUBE_TOKEN}
-        //             '''
-        //         }
-        //     }
-        // }
-
+        stage('Static Code Analysis with SonarQube') {
+            steps {
+                script {
+                    sh '''
+                        echo "Running SonarQube analysis..."
+                        sonar-scanner \
+                          -Dsonar.projectKey=${APP_NAME} \
+                          -Dsonar.sources=. \
+                          -Dsonar.host.url=${SONARQUBE_URL} \
+                          -Dsonar.login=${SONARQUBE_TOKEN}
+                    '''
+                }
+            }
+        }
         stage('Prebuild') {
             steps {
                 sh 'python3 -m venv venv' // Create a virtual environment
