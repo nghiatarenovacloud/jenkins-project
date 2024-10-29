@@ -19,6 +19,19 @@ pipeline {
         SONARQUBE_TOKEN = credentials('5b5ef5ae4a11aa24388d8c734138fb5e14477e3e') // Jenkins credentials for SonarQube token
     }
     stages {
+        stage('Checkout') {
+            steps {
+                git scm
+            }
+        }
+
+        stage('Validate') {
+            steps {
+                script {
+                    sh 'ls -la'
+                }
+            }
+        }
         stage('Install Dependencies') {
             steps {
                 script {
@@ -35,12 +48,12 @@ pipeline {
                 }
             }
         }  
-        stage('Checkout') {
-            steps {
-                git url: 'https://github.com/nghiatarenovacloud/jenkins-project.git', branch: 'main'
-                sh "ls" // List files for verification
-            }
-        }
+        // stage('Checkout') {
+        //     steps {
+        //         git url: 'https://github.com/nghiatarenovacloud/jenkins-project.git', branch: 'main'
+        //         sh "ls" // List files for verification
+        //     }
+        // }
         stage('Setup Docker Permissions') {
             steps {
                 script {
