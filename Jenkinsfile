@@ -1,23 +1,23 @@
 
 pipeline {
     agent { label "worker-node" }
-    environment {
-        // APP_NAME = "jenkins-flask-app"
-        // BRANCH = "main"
-        // BUILD_ENV = "dev"
-        // ECR_REPOSITORY = "nghia-cicd-jenkins"
-        // AWS_REGION = "ap-southeast-1"
-        // AWS_ACCOUNT_ID = "879654127886"
-        // COMMIT_ID = "${env.GIT_COMMIT.substring(0, 7)}" // Get the first 7 characters of the commit ID
-        // IMAGE_TAG = "${new Date().format('HH-dd-MM-yy')}-${COMMIT_ID}" // Format tag for image
-        // EMAIL_RECIPIENT = "nghia.ta@renovacloud.com"
-        // APPROVER_EMAIL = "nghia.ta@renovacloud.com"
-        // EKS_CLUSTER = "nghia-test-eks"
-        // LOG_GROUP_NAME = 'nghia-jenkins-ci'
-        // LOG_STREAM_NAME = 'nghia-jenkins-ci-application'
-        // SONARQUBE_URL = "https://binh-sonar.renovacloud.io"
-        // SONARQUBE_TOKEN = credentials('5b5ef5ae4a11aa24388d8c734138fb5e14477e3e') // Jenkins credentials for SonarQube token
-    }
+    // environment {
+    //     // APP_NAME = "jenkins-flask-app"
+    //     // BRANCH = "main"
+    //     // BUILD_ENV = "dev"
+    //     // ECR_REPOSITORY = "nghia-cicd-jenkins"
+    //     // AWS_REGION = "ap-southeast-1"
+    //     // AWS_ACCOUNT_ID = "879654127886"
+    //     // COMMIT_ID = "${env.GIT_COMMIT.substring(0, 7)}" // Get the first 7 characters of the commit ID
+    //     // IMAGE_TAG = "${new Date().format('HH-dd-MM-yy')}-${COMMIT_ID}" // Format tag for image
+    //     // EMAIL_RECIPIENT = "nghia.ta@renovacloud.com"
+    //     // APPROVER_EMAIL = "nghia.ta@renovacloud.com"
+    //     // EKS_CLUSTER = "nghia-test-eks"
+    //     // LOG_GROUP_NAME = 'nghia-jenkins-ci'
+    //     // LOG_STREAM_NAME = 'nghia-jenkins-ci-application'
+    //     // SONARQUBE_URL = "https://binh-sonar.renovacloud.io"
+    //     // SONARQUBE_TOKEN = credentials('5b5ef5ae4a11aa24388d8c734138fb5e14477e3e') // Jenkins credentials for SonarQube token
+    // }
     stages {
         stage('Checkout') {
             steps {
