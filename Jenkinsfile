@@ -15,70 +15,72 @@ pipeline {
         EKS_CLUSTER = "nghia-test-eks"
         LOG_GROUP_NAME = 'nghia-jenkins-ci'
         LOG_STREAM_NAME = 'nghia-jenkins-ci-application'
+        SONARQUBE_URL = "https://binh-sonar.renovacloud.io"
+        SONARQUBE_TOKEN = credentials('5b5ef5ae4a11aa24388d8c734138fb5e14477e3e') // Jenkins credentials for SonarQube token
     }
     stages {
+        stage('Checkout') {
+            steps {
+                git url: 'https://github.com/nghiatarenovacloud/jenkins-project.git', branch: 'main'
+                sh "ls" // List files for verification
+            }
+        }
+
         stage('Install Dependencies') {
             steps {
                 script {
                     sh '''
-                        sudo apt update
-                        sudo apt install -y python3 python3-pip python3-venv docker.io unzip
+                        sudo apt update && sudo apt install -y python3 python3-pip python3-venv docker.io unzip
                         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-                        unzip -o awscliv2.zip
-                        sudo ./aws/install --update
-                        aws --version
-                        docker --version
+                        unzip -o awscliv2.zip && sudo ./aws/install --update
                         curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
-                        chmod +x ./kubectl
-                        sudo mv ./kubectl /usr/local/bin/kubectl
-                        kubectl version --client
-                        sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+                        chmod +x ./kubectl && sudo mv ./kubectl /usr/local/bin/kubectl
                         wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
                         echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
-                        sudo apt-get update
-                        sudo apt-get install -y trivy
-                        trivy --version
+                        sudo apt-get update && sudo apt-get install -y trivy
                     '''
                 }
             }
         }  
-        stage('Disk Space Cleanup') {
-            steps {
-                script {
-                    // Enable Global Build Discarders
-                    sh '''
-                        echo "Cleaning up old builds and images..."
-                        docker image prune -af
-                        docker system prune -af
-                        
-                    '''
-                }
-            }
-        } 
         stage('Setup Docker Permissions') {
             steps {
                 script {
                     sh '''
                         echo "Adding Jenkins user to Docker group..."
                         sudo usermod -aG docker jenkins || echo "User Jenkins is already in the Docker group."
-                        echo "Restarting Jenkins service..."
-                        sudo systemctl restart jenkins
-                    '''
-                    sh '''
-                        echo "Checking permissions for Docker socket..."
-                        ls -l /var/run/docker.sock
-                    '''
-                    sh '''
                         echo "Changing permissions for Docker socket..."
                         sudo chmod 666 /var/run/docker.sock
                     '''
+                }
+            }
+        }
+
+        stage('Disk Space Cleanup') {
+            steps {
+                script {
                     sh '''
-                        echo "Authenticating Docker..."
-                        sudo -u jenkins docker ps
+                        echo "Cleaning up old builds and images..."
+                        docker image prune -af
+                        docker system prune -af
                     '''
                 }
             }
-        } 
+        }
+
+        stage('Static Code Analysis with SonarQube') {
+            steps {
+                script {
+                    sh '''
+                        echo "Running SonarQube analysis..."
+                        sonar-scanner \
+                          -Dsonar.projectKey=${APP_NAME} \
+                          -Dsonar.sources=. \
+                          -Dsonar.host.url=${SONARQUBE_URL} \
+                          -Dsonar.login=${SONARQUBE_TOKEN}
+                    '''
+                }
+            }
+        }
 
         stage('Prebuild') {
             steps {
@@ -86,12 +88,7 @@ pipeline {
             }
         }
         
-        stage('Checkout') {
-            steps {
-                git url: 'https://github.com/nghiatarenovacloud/jenkins-project.git', branch: 'main'
-                sh "ls" // List files for verification
-            }
-        }
+        
         
         stage('Setup') {
             steps {
@@ -99,20 +96,18 @@ pipeline {
             }
         }
 
-        stage('Test') {
-            steps {
-                sh '''
-                    . venv/bin/activate
-                    ./venv/bin/pytest 
-                '''
-            }
-        }
-
-        stage('Login to ECR') {
+        stage('Scan Docker Image with Trivy') {
             steps {
                 script {
-                    sh 'echo "Logging in to Amazon ECR..."'
-                    sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+            sh 'echo "Scanning Docker image for vulnerabilities..."'
+            def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL --format table ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
+
+            // Write scan result to file log
+            writeFile file: 'trivy-scan-results.log', text: scanResult
+
+            // Print scan result
+            echo "Trivy Scan Results for ${APP_NAME}:${IMAGE_TAG}"
+            echo scanResult
                 }
             }
         }
@@ -130,58 +125,23 @@ pipeline {
             }
         }
 
-        stage('Scan Docker Image with Trivy') {
+        stage('Run Tests') {
             steps {
-                script {
-            //         sh 'echo "Scanning Docker image for vulnerabilities..."'
-            // def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL  ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
-
-            // Write scan result to file log
-            // writeFile file: 'trivy-scan-results.log', text: scanResult
-
-            // 
-            // def highVulns = scanResult.split('\n').findAll { it.contains('HIGH') }
-            // def criticalVulns = scanResult.split('\n').findAll { it.contains('CRITICAL') }
-
-            // 
-            // if (highVulns) {
-            //     echo "Trivy Scan Results - HIGH Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}"
-            //     echo "The following HIGH vulnerabilities were found in the image:"
-            //     echo "${highVulns.join('\n')}"
-            //     echo "Please address these issues."
-            // }
-
-            // if (criticalVulns) {
-            //     echo "Trivy Scan Results - CRITICAL Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}"
-            //     echo "The following CRITICAL vulnerabilities were found in the image:"
-            //     echo "${criticalVulns.join('\n')}"
-            //     echo "Immediate action is required!"
-            // }
-            sh 'echo "Scanning Docker image for vulnerabilities..."'
-            def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL --format table ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
-
-            // Write scan result to file log
-            writeFile file: 'trivy-scan-results.log', text: scanResult
-
-            // Print scan result
-            echo "Trivy Scan Results for ${APP_NAME}:${IMAGE_TAG}"
-            echo scanResult
-
-                    // if (highVulns) {
-                    //     mail to: EMAIL_RECIPIENT,
-                    //         subject: "Trivy Scan Results - HIGH Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
-                    //         body: "The following HIGH vulnerabilities were found in the image:\n\n${highVulns.join('\n')}\n\nPlease address these issues."
-                    // }
-
-                    // if (criticalVulns) {
-                    //     mail to: EMAIL_RECIPIENT,
-                    //         subject: "Trivy Scan Results - CRITICAL Vulnerabilities in ${APP_NAME}:${IMAGE_TAG}",
-                    //         body: "The following CRITICAL vulnerabilities were found in the image:\n\n${criticalVulns.join('\n')}\n\nImmediate action is required!"
-                    // }
-                }
+                sh '''
+                    . venv/bin/activate
+                    ./venv/bin/pytest 
+                '''
             }
         }
 
+        stage('Login to ECR') {
+            steps {
+                script {
+                    sh 'echo "Logging in to Amazon ECR..."'
+                    sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+                }
+            }
+        }
 
         stage('Push Docker Image') {
             steps {
@@ -227,12 +187,3 @@ pipeline {
         }
     }
 }
-// // Function to validate JSON
-//             boolean isValidJson(String json) {
-//                 try {
-//                     new groovy.json.JsonSlurper().parseText(json)
-//                     return true
-//                 } catch (Exception e) {
-//                     return false
-//                 }
-//             }
