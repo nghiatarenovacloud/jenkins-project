@@ -75,14 +75,18 @@ pipeline {
         stage('Static Code Analysis with SonarQube') {
             steps {
                 script {
-                    sh '''
-                        echo "Running SonarQube analysis..."
-                        sonar-scanner \
-                          -Dsonar.projectKey=${APP_NAME} \
-                          -Dsonar.sources=. \
-                          -Dsonar.host.url=${SONARQUBE_URL} \
-                          -Dsonar.login=${SONARQUBE_TOKEN}
-                    '''
+                    try {
+                        sh '''
+                            echo "Running SonarQube analysis..."
+                            sonar-scanner \
+                              -Dsonar.projectKey=${APP_NAME} \
+                              -Dsonar.sources=. \
+                              -Dsonar.host.url=${SONARQUBE_URL} \
+                              -Dsonar.login=${SONARQUBE_TOKEN}
+                        '''
+                    } catch (Exception e) {
+                        error "SonarQube analysis failed: ${e.message}"
+                    }
                 }
             }
         }
@@ -115,14 +119,20 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'echo "Building Docker image..."'
-                sh 'docker system prune -af'
-                sh 'docker builder prune --force' // Clean up unused Docker build cache
-                sh "docker build --no-cache -t ${APP_NAME}:${IMAGE_TAG} ." // Build the Docker image
-                sh 'echo "Listing Docker images..."'
-                sh 'docker images'
-                sh "echo \"Tagging Docker image with IMAGE_TAG\""
-                sh "docker tag ${APP_NAME}:${IMAGE_TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}"
+                script {
+                    try {
+                        sh 'echo "Building Docker image..."'
+                        sh 'docker system prune -af'
+                        sh 'docker builder prune --force' // Clean up unused Docker build cache
+                        sh "docker build --no-cache -t ${APP_NAME}:${IMAGE_TAG} ." // Build the Docker image
+                        sh 'echo "Listing Docker images..."'
+                        sh 'docker images'
+                        sh "echo \"Tagging Docker image with IMAGE_TAG\""
+                        sh "docker tag ${APP_NAME}:${IMAGE_TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}"
+                    } catch (Exception e) {
+                        error "Docker build failed: ${e.message}"
+                    }
+                }
             }
         }
 
@@ -184,6 +194,15 @@ pipeline {
                     sh "kubectl apply -f deployment.yaml" // Deploy the application to EKS
                     echo "Deployed to EKS Cluster."
                 }
+            }
+        }
+        
+    }
+    post {
+        always {
+            script {
+                echo "Cleaning up resources..."
+                sh 'docker system prune -af'
             }
         }
     }
