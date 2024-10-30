@@ -77,7 +77,7 @@ pipeline {
                 script {
                     try {
                         sh '''
-                            curl -u ${SONARQUBE_TOKEN}: ${SONARQUBE_URL}/api/projects/search
+                            curl -u 5b5ef5ae4a11aa24388d8c734138fb5e14477e3e: https://binh-sonar.renovacloud.io/api/projects/search
                             echo "Running SonarQube analysis..."
                             sonar-scanner \
                               -Dsonar.projectKey=${APP_NAME} \
