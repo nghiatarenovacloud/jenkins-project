@@ -198,14 +198,14 @@ pipeline {
         }
         
     }
-    post {
-    always {
-        node { 
-            script {
-                echo "Cleaning up resources..."
-                sh 'docker system prune -af'
-            }
-        }
-    }
-}
+    // post {
+    // always {
+    //     node { 
+    //         script {
+    //             echo "Cleaning up resources..."
+    //             sh 'docker system prune -af'
+    //         }
+    //     }
+    // }
+// }
 }
