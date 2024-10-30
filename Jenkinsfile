@@ -97,7 +97,7 @@ pipeline {
             steps {
                 script {
                     // Set up SonarQube environment
-                    withSonarQubeEnv('My SonarQube Server') {
+                    withSonarQubeEnv('NghiaSonarQube') {
                         try {
                             // Running the SonarQube scanner
                             sh '''
