@@ -94,26 +94,26 @@ pipeline {
         //     }
         // }
         stage('Static Code Analysis with SonarQube') {
-    steps {
-        script {
-            withSonarQubeEnv('NghiaSonarQube', envOnly: true) { 
-                println ${env.SONAR_HOST_URL} 
-                try {
-                    sh '''
-                        echo "Running SonarQube analysis..."
-                        sonar-scanner \
-                        -Dsonar.projectKey=${APP_NAME} \
-                        -Dsonar.sources=. \
-                        -Dsonar.host.url=${SONAR_HOST_URLL} \
-                        -Dsonar.login=${SONARQUBE_TOKEN}
-                    '''
-                } catch (Exception e) {
-                    error "SonarQube analysis failed: ${e.message}"
+            steps {
+                script {
+                    withSonarQubeEnv('NghiaSonarQube', envOnly: true) { 
+                        println ${env.SONAR_HOST_URL} 
+                        try {
+                            sh '''
+                                echo "Running SonarQube analysis..."
+                                sonar-scanner \
+                                -Dsonar.projectKey=${APP_NAME} \
+                                -Dsonar.sources=. \
+                                -Dsonar.host.url=${SONAR_HOST_URLL} \
+                                -Dsonar.login=${SONARQUBE_TOKEN}
+                            '''
+                        } catch (Exception e) {
+                            error "SonarQube analysis failed: ${e.message}"
+                        }
+                    }
                 }
             }
         }
-    }
-}
         stage('Prebuild') {
             steps {
                 sh 'python3 -m venv venv' // Create a virtual environment
