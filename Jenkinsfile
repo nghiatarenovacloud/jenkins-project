@@ -94,7 +94,7 @@ pipeline {
         stage('Static Code Analysis with SonarQube') {
     steps {
         script {
-            withSonarQubeEnv('Binh SonarQube', envOnly: true) { 
+            withSonarQubeEnv('NghiaSonarQube', envOnly: true) { 
                 println ${env.SONAR_HOST_URL} 
                 try {
                     sh '''
