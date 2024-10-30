@@ -16,7 +16,7 @@ pipeline {
         LOG_GROUP_NAME = 'nghia-jenkins-ci'
         LOG_STREAM_NAME = 'nghia-jenkins-ci-application'
         SONAR_HOST_URL = "https://binh-sonar.renovacloud.io"
-        SONARQUBE_TOKEN = credentials('5b5ef5ae4a11aa24388d8c734138fb5e14477e3e') // Jenkins credentials for SonarQube token
+        SONARQUBE_TOKEN = credentials('4d932a04d943b2dec95b9dc60e7ed339c87ceed6') // Jenkins credentials for SonarQube token
     }
     stages {
         stage('Checkout') {
