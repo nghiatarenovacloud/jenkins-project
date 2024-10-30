@@ -39,6 +39,8 @@ pipeline {
                         wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
                         echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
                         sudo apt-get update && sudo apt-get install -y trivy
+                        # Install SonarQube Scanner
+                        sudo apt-get install -y sonar-scanner
                     '''
                 }
             }
@@ -74,25 +76,6 @@ pipeline {
             }
         }
 
-        // stage('Static Code Analysis with SonarQube') {
-        //     steps {
-        //         script {
-        //             try {
-        //                 sh '''
-                            
-        //                     echo "Running SonarQube analysis..."
-        //                     sonar-scanner \
-        //                       -Dsonar.projectKey=${APP_NAME} \
-        //                       -Dsonar.sources=. \
-        //                       -Dsonar.host.url=${SONARQUBE_URL} \
-        //                       -Dsonar.login=${SONARQUBE_TOKEN}
-        //                 '''
-        //             } catch (Exception e) {
-        //                 error "SonarQube analysis failed: ${e.message}"
-        //             }
-        //         }
-        //     }
-        // }
         stage('Static Code Analysis with SonarQube') {
             steps {
                 script {
