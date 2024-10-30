@@ -94,7 +94,7 @@ pipeline {
         stage('Static Code Analysis with SonarQube') {
     steps {
         script {
-            withSonarQubeEnv('NghiaSonarQube',, envOnly: true) { // Thay 'My SonarQube Server' bằng tên server của bạn
+            withSonarQubeEnv('NghiaSonarQube', envOnly: true) { 
                 println ${env.SONAR_HOST_URL} 
                 try {
                     sh '''
