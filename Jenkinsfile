@@ -77,6 +77,7 @@ pipeline {
                 script {
                     try {
                         sh '''
+                            curl -u ${SONARQUBE_TOKEN}: ${SONARQUBE_URL}/api/projects/search
                             echo "Running SonarQube analysis..."
                             sonar-scanner \
                               -Dsonar.projectKey=${APP_NAME} \
