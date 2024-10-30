@@ -40,7 +40,11 @@ pipeline {
                         echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
                         sudo apt-get update && sudo apt-get install -y trivy
                         # Install SonarQube Scanner
-                        sudo apt-get install -y sonar-scanner
+                        SONAR_SCANNER_VERSION="4.8.0.2856" # Update to the latest version if needed
+                        wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli-${SONAR_SCANNER_VERSION}-linux.zip
+                        unzip sonar-scanner-cli-${SONAR_SCANNER_VERSION}-linux.zip
+                        sudo mv sonar-scanner-${SONAR_SCANNER_VERSION}-linux /opt/sonar-scanner
+                        sudo ln -s /opt/sonar-scanner/bin/sonar-scanner /usr/local/bin/sonar-scanner
                     '''
                 }
             }
