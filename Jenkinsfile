@@ -96,8 +96,8 @@ pipeline {
         stage('Static Code Analysis with SonarQube') {
             steps {
                 script {
-                    withSonarQubeEnv('NghiaSonarQube', envOnly: true) { 
-                        
+                    // Set up SonarQube environment
+                    withSonarQubeEnv('NghiaSonarQube') { 
                         try {
                             sh '''
                                 echo "Running SonarQube analysis..."
