@@ -199,11 +199,13 @@ pipeline {
         
     }
     post {
-        always {
+    always {
+        node { 
             script {
                 echo "Cleaning up resources..."
                 sh 'docker system prune -af'
             }
         }
     }
+}
 }
