@@ -97,14 +97,15 @@ pipeline {
             steps {
                 script {
                     // Set up SonarQube environment
-                    withSonarQubeEnv('NghiaSonarQube') { 
+                    withSonarQubeEnv('My SonarQube Server') {
                         try {
+                            // Running the SonarQube scanner
                             sh '''
                                 echo "Running SonarQube analysis..."
                                 sonar-scanner \
                                 -Dsonar.projectKey=${APP_NAME} \
                                 -Dsonar.sources=. \
-                                -Dsonar.host.url=${SONAR_HOST_URLL} \
+                                -Dsonar.host.url=${SONAR_HOST_URL} \
                                 -Dsonar.login=${SONARQUBE_TOKEN}
                             '''
                         } catch (Exception e) {
