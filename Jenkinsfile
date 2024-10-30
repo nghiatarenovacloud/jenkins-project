@@ -15,7 +15,7 @@ pipeline {
         EKS_CLUSTER = "nghia-test-eks"
         LOG_GROUP_NAME = 'nghia-jenkins-ci'
         LOG_STREAM_NAME = 'nghia-jenkins-ci-application'
-        SONARQUBE_URL = "https://binh-sonar.renovacloud.io"
+        SONAR_HOST_URL = "https://binh-sonar.renovacloud.io"
         SONARQUBE_TOKEN = credentials('5b5ef5ae4a11aa24388d8c734138fb5e14477e3e') // Jenkins credentials for SonarQube token
     }
     stages {
@@ -72,25 +72,46 @@ pipeline {
             }
         }
 
+        // stage('Static Code Analysis with SonarQube') {
+        //     steps {
+        //         script {
+        //             try {
+        //                 sh '''
+                            
+        //                     echo "Running SonarQube analysis..."
+        //                     sonar-scanner \
+        //                       -Dsonar.projectKey=${APP_NAME} \
+        //                       -Dsonar.sources=. \
+        //                       -Dsonar.host.url=${SONARQUBE_URL} \
+        //                       -Dsonar.login=${SONARQUBE_TOKEN}
+        //                 '''
+        //             } catch (Exception e) {
+        //                 error "SonarQube analysis failed: ${e.message}"
+        //             }
+        //         }
+        //     }
+        // }
         stage('Static Code Analysis with SonarQube') {
-            steps {
-                script {
-                    try {
-                        sh '''
-                            curl -u 5b5ef5ae4a11aa24388d8c734138fb5e14477e3e: https://binh-sonar.renovacloud.io/api/projects/search
-                            echo "Running SonarQube analysis..."
-                            sonar-scanner \
-                              -Dsonar.projectKey=${APP_NAME} \
-                              -Dsonar.sources=. \
-                              -Dsonar.host.url=${SONARQUBE_URL} \
-                              -Dsonar.login=${SONARQUBE_TOKEN}
-                        '''
-                    } catch (Exception e) {
-                        error "SonarQube analysis failed: ${e.message}"
-                    }
+    steps {
+        script {
+            withSonarQubeEnv('NghiaSonarQube',, envOnly: true) { // Thay 'My SonarQube Server' bằng tên server của bạn
+                println ${env.SONAR_HOST_URL} 
+                try {
+                    sh '''
+                        echo "Running SonarQube analysis..."
+                        sonar-scanner \
+                        -Dsonar.projectKey=${APP_NAME} \
+                        -Dsonar.sources=. \
+                        -Dsonar.host.url=${SONAR_HOST_URLL} \
+                        -Dsonar.login=${SONARQUBE_TOKEN}
+                    '''
+                } catch (Exception e) {
+                    error "SonarQube analysis failed: ${e.message}"
                 }
             }
         }
+    }
+}
         stage('Prebuild') {
             steps {
                 sh 'python3 -m venv venv' // Create a virtual environment
