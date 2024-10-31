@@ -41,10 +41,10 @@ pipeline {
                         sudo apt-get update && sudo apt-get install -y trivy
                         # Install SonarQube Scanner
                        # Install SonarQube
-                        sudo wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-9.6.1.59531.zip
-                        sudo unzip -q sonarqube-9.6.1.59531.zip
-                        sudo mv sonarqube-9.6.1.59531 /opt/sonarqube
-                        sudo rm sonarqube-9.6.1.59531.zip
+                        #sudo wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-9.6.1.59531.zip
+                        #sudo unzip -q sonarqube-9.6.1.59531.zip
+                        #sudo mv sonarqube-9.6.1.59531 /opt/sonarqube
+                        #sudo rm sonarqube-9.6.1.59531.zip
                     '''
                 }
             }
