@@ -73,7 +73,7 @@ pipeline {
             [tool.sonar]
             projectKey = "jenkins-flask-app"
             sources = "app.py, test_app.py, templates/index.html"
-            exclusions = "**/*.md, **/*.sh, **/*.yaml, **/*.zip, **/__pycache__/**"
+            exclusions = "**/*.md, **/*.sh, **/*.yaml, **/*.zip, **/__pycache__/**, **/test_app.py"
             '''
             withCredentials([string(credentialsId: 'jenkins-sonarque', variable: 'SONARQUBE_TOKEN')]) {
                 withEnv(["SONAR_HOST_URL=${SONAR_HOST_URL}"]) {
