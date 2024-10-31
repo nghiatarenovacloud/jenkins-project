@@ -89,11 +89,8 @@ pipeline {
                             // Running the SonarQube scanner
                             sh '''
                                 echo "Running SonarQube analysis..."
-                                sonar-scanner \
-                                -Dsonar.projectKey=${APP_NAME} \
-                                -Dsonar.sources=. \
-                                -Dsonar.host.url=${SONAR_HOST_URL} \
-                                -Dsonar.login=${SONARQUBE_TOKEN}
+                                sonar-scanner 
+                               
                             '''
                         } catch (Exception e) {
                             error "SonarQube analysis failed: ${e.message}"
