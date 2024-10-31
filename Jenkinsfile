@@ -35,7 +35,7 @@ pipeline {
                             pip install -r requirements.txt  # Install dependencies from requirements.txt
                             pip install pysonar-scanner  # Install pysonar-scanner
                             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-                            unzip -o awscliv2.zip && sudo ./aws/install --update > /dev/null 2>&1
+                            unzip -q -o awscliv2.zip && sudo ./aws/install --update > /dev/null 2>&1
                             curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
                             chmod +x ./kubectl && sudo mv ./kubectl /usr/local/bin/kubectl
                             wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
@@ -72,7 +72,8 @@ pipeline {
                     writeFile file: 'pyproject.toml', text: '''
                     [tool.sonar]
                     projectKey = "jenkins-flask-app"
-                    sources = "."
+                    sources = "app.py, test_app.py, templates/index.html"  # Đường dẫn đến các file cần quét
+                    exclusions = "**/*.md, **/*.sh, **/*.yaml, **/*.zip, **/__pycache__/**"  
                     '''
                     withEnv(["SONAR_HOST_URL=${SONAR_HOST_URL}", "SONAR_TOKEN=${SONARQUBE_TOKEN}"]) {
                         try {
