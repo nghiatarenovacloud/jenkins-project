@@ -67,27 +67,29 @@ pipeline {
             }
         }
         stage('Static Code Analysis with SonarQube') {
-            steps {
-                script {
-                    writeFile file: 'pyproject.toml', text: '''
-                    [tool.sonar]
-                    projectKey = "jenkins-flask-app"
-                    sources = "app.py, test_app.py, templates/index.html"  # Đường dẫn đến các file cần quét
-                    exclusions = "**/*.md, **/*.sh, **/*.yaml, **/*.zip, **/__pycache__/**"  
-                    '''
-                    withEnv(["SONAR_HOST_URL=${SONAR_HOST_URL}", "SONAR_TOKEN=${SONARQUBE_TOKEN}"]) {
-                        try {
-                            sh '''
-                                . venv/bin/activate  # Activate the virtual environment
-                                ./venv/bin/pysonar-scanner -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN
-                            '''
-                        } catch (Exception e) {
-                            error "SonarQube analysis failed: ${e.message}"
-                        }
+    steps {
+        script {
+            writeFile file: 'pyproject.toml', text: '''
+            [tool.sonar]
+            projectKey = "jenkins-flask-app"
+            sources = "app.py, test_app.py, templates/index.html"
+            exclusions = "**/*.md, **/*.sh, **/*.yaml, **/*.zip, **/__pycache__/**"
+            '''
+            withCredentials([string(credentialsId: 'jenkins-sonarque', variable: 'SONARQUBE_TOKEN')]) {
+                withEnv(["SONAR_HOST_URL=${SONAR_HOST_URL}"]) {
+                    try {
+                        sh '''
+                            . venv/bin/activate  # Activate the virtual environment
+                            ./venv/bin/pysonar-scanner -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONARQUBE_TOKEN
+                        '''
+                    } catch (Exception e) {
+                        error "SonarQube analysis failed: ${e.message}"
                     }
                 }
             }
         }
+    }
+}
         
         stage('Build Docker Image') {
             steps {
