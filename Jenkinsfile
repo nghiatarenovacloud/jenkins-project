@@ -80,8 +80,9 @@ pipeline {
                         try {
                             // Running the SonarQube analysis using pysonar-scanner
                             sh '''
-                                echo "Running SonarQube analysis..."
-                                pysonar-scanner -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN
+                               echo "Running SonarQube analysis..."
+                                . venv/bin/activate  # Activate the virtual environment
+                                ./venv/bin/pysonar-scanner -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN
                             '''
                         } catch (Exception e) {
                             error "SonarQube analysis failed: ${e.message}"
