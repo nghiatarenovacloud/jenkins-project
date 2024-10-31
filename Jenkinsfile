@@ -75,14 +75,7 @@ pipeline {
                 }
             }
         }
-        stage('Scan Docker Image with Trivy') {
-            steps {
-                script {
-                    sh 'trivy image --severity HIGH,CRITICAL --format table ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG} > trivy-scan-results.log'
-                    echo "Trivy scan completed. Results saved to trivy-scan-results.log"
-                }
-            }
-        }
+        
         stage('Build Docker Image') {
             steps {
                 script {
@@ -115,6 +108,14 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 sh "docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}"
+            }
+        }
+        stage('Scan Docker Image with Trivy') {
+            steps {
+                script {
+                    sh 'trivy image --severity HIGH,CRITICAL --format table ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG} > trivy-scan-results.log'
+                    echo "Trivy scan completed. Results saved to trivy-scan-results.log"
+                }
             }
         }
         stage('Manual Approval') {
