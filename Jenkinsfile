@@ -54,6 +54,14 @@ pipeline {
                 }
             }
         }
+        stage('Run Tests') {
+            steps {
+                sh '''
+                    . venv/bin/activate
+                    ./venv/bin/pytest 
+                '''
+            }
+        }
         stage('Static Code Analysis with SonarQube') {
             steps {
                 script {
@@ -90,14 +98,7 @@ pipeline {
                 }
             }
         }
-        stage('Run Tests') {
-            steps {
-                sh '''
-                    . venv/bin/activate
-                    ./venv/bin/pytest 
-                '''
-            }
-        }
+        
         stage('Login to ECR') {
             steps {
                 script {
@@ -113,8 +114,15 @@ pipeline {
         stage('Scan Docker Image with Trivy') {
             steps {
                 script {
-                    sh 'trivy image --severity HIGH,CRITICAL --format table ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG} > trivy-scan-results.log'
-                    echo "Trivy scan completed. Results saved to trivy-scan-results.log"
+                    sh 'echo "Scanning Docker image for vulnerabilities..."'
+                    def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL --format table ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
+
+                    // Write scan result to file log
+                    writeFile file: 'trivy-scan-results.log', text: scanResult
+
+                    // Print scan result
+                    echo "Trivy Scan Results for ${APP_NAME}:${IMAGE_TAG}"
+                    echo scanResult
                 }
             }
         }
