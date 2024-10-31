@@ -23,24 +23,28 @@ pipeline {
                 sh "ls" // List files for verification
             }
         }
-        stage('Setup Environment and Install Dependencies') {
+            stage('Setup Environment and Install Dependencies') {
             steps {
                 script {
-                    sh '''
-                        sudo apt update && sudo apt install -y python3 python3-pip python3-venv docker.io unzip
-                        python3 -m venv venv  # Create a virtual environment
-                        . venv/bin/activate    # Activate the virtual environment
-                        pip install --upgrade pip  # Upgrade pip
-                        pip install -r requirements.txt  # Install dependencies from requirements.txt
-                        pip install pysonar-scanner  # Install pysonar-scanner
-                        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-                        unzip -o awscliv2.zip && sudo ./aws/install --update > /dev/null 2>&1
-                        curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
-                        chmod +x ./kubectl && sudo mv ./kubectl /usr/local/bin/kubectl
-                        wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
-                        echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
-                        sudo apt-get update && sudo apt-get install -y trivy
-                    '''
+                    try {
+                        sh '''
+                            sudo apt update && sudo apt install -y python3 python3-pip python3-venv docker.io unzip
+                            python3 -m venv venv  # Create a virtual environment
+                            . venv/bin/activate    # Activate the virtual environment
+                            pip install --upgrade pip  # Upgrade pip
+                            pip install -r requirements.txt  # Install dependencies from requirements.txt
+                            pip install pysonar-scanner  # Install pysonar-scanner
+                            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+                            unzip -o awscliv2.zip && sudo ./aws/install --update > /dev/null 2>&1
+                            curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+                            chmod +x ./kubectl && sudo mv ./kubectl /usr/local/bin/kubectl
+                            wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+                            echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+                            sudo apt-get update && sudo apt-get install -y trivy
+                        '''
+                    } catch (Exception e) {
+                        error "Setup failed: ${e.message}"
+                    }
                 }
             }
         }
