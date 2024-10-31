@@ -28,6 +28,9 @@ pipeline {
                 script {
                     sh '''
                         sudo apt update && sudo apt install -y python3 python3-pip python3-venv docker.io unzip
+                        python3 -m venv venv  # Create a virtual environment
+                        . venv/bin/activate    # Activate the virtual environment
+                        pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ pysonar-scanner
                         pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ pysonar-scanner
                         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
                         unzip -o awscliv2.zip && sudo ./aws/install --update
