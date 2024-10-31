@@ -1,4 +1,3 @@
-
 pipeline {
     agent { label "worker-node" }
     environment {
@@ -16,14 +15,11 @@ pipeline {
         LOG_GROUP_NAME = 'nghia-jenkins-ci'
         LOG_STREAM_NAME = 'nghia-jenkins-ci-application'
         SONAR_HOST_URL = "https://binh-sonar.renovacloud.io"
-        //4d932a04d943b2dec95b9dc60e7ed339c87ceed6
-        //5b5ef5ae4a11aa24388d8c734138fb5e14477e3e
         SONARQUBE_TOKEN = credentials('jenkins-sonarque') // Jenkins credentials for SonarQube token
     }
     stages {
         stage('Checkout') {
             steps {
-                // git url: 'https://github.com/nghiatarenovacloud/jenkins-project.git', branch: 'main'
                 sh "ls" // List files for verification
             }
         }
@@ -32,6 +28,7 @@ pipeline {
                 script {
                     sh '''
                         sudo apt update && sudo apt install -y python3 python3-pip python3-venv docker.io unzip
+                        pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ pysonar-scanner
                         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
                         unzip -o awscliv2.zip && sudo ./aws/install --update
                         curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -39,22 +36,10 @@ pipeline {
                         wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
                         echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
                         sudo apt-get update && sudo apt-get install -y trivy
-                        # Install SonarQube Scanner
-                       # Install SonarQube
-                        #sudo wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-9.6.1.59531.zip
-                        #sudo unzip -q sonarqube-9.6.1.59531.zip
-                        #sudo mv sonarqube-9.6.1.59531 /opt/sonarqube
-                        #sudo rm sonarqube-9.6.1.59531.zip
                     '''
                 }
             }
-        }  
-        // stage('Checkout') {
-        //     steps {
-        //         git url: 'https://github.com/nghiatarenovacloud/jenkins-project.git', branch: 'main'
-        //         sh "ls" // List files for verification
-        //     }
-        // }
+        }
         stage('Setup Docker Permissions') {
             steps {
                 script {
@@ -67,7 +52,6 @@ pipeline {
                 }
             }
         }
-
         stage('Disk Space Cleanup') {
             steps {
                 script {
@@ -79,18 +63,22 @@ pipeline {
                 }
             }
         }
-
         stage('Static Code Analysis with SonarQube') {
             steps {
                 script {
+                    // Create pyproject.toml file
+                    writeFile file: 'pyproject.toml', text: '''
+                    [tool.sonar]
+                    projectKey = "jenkins-flask-app"
+                    sources = "."
+                    '''
                     // Set up SonarQube environment
-                    withSonarQubeEnv('NghiaSonarQube') {
+                    withEnv(["SONAR_HOST_URL=${SONAR_HOST_URL}", "SONAR_TOKEN=${SONARQUBE_TOKEN}"]) {
                         try {
-                            // Running the SonarQube scanner
+                            // Running the SonarQube analysis using pysonar-scanner
                             sh '''
                                 echo "Running SonarQube analysis..."
-                                sonar-scanner 
-                               
+                                pysonar-scanner -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN
                             '''
                         } catch (Exception e) {
                             error "SonarQube analysis failed: ${e.message}"
@@ -109,23 +97,21 @@ pipeline {
                 sh "./venv/bin/pip install -r requirements.txt" // Install dependencies
             }
         }
-
         stage('Scan Docker Image with Trivy') {
             steps {
                 script {
-            sh 'echo "Scanning Docker image for vulnerabilities..."'
-            def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL --format table ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
+                    sh 'echo "Scanning Docker image for vulnerabilities..."'
+                    def scanResult = sh(script: "trivy image --severity HIGH,CRITICAL --format table ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}", returnStdout: true)
 
-            // Write scan result to file log
-            writeFile file: 'trivy-scan-results.log', text: scanResult
+                    // Write scan result to file log
+                    writeFile file: 'trivy-scan-results.log', text: scanResult
 
-            // Print scan result
-            echo "Trivy Scan Results for ${APP_NAME}:${IMAGE_TAG}"
-            echo scanResult
+                    // Print scan result
+                    echo "Trivy Scan Results for ${APP_NAME}:${IMAGE_TAG}"
+                    echo scanResult
                 }
             }
         }
-
         stage('Build Docker Image') {
             steps {
                 script {
@@ -144,7 +130,6 @@ pipeline {
                 }
             }
         }
-
         stage('Run Tests') {
             steps {
                 sh '''
@@ -153,7 +138,6 @@ pipeline {
                 '''
             }
         }
-
         stage('Login to ECR') {
             steps {
                 script {
@@ -162,7 +146,6 @@ pipeline {
                 }
             }
         }
-
         stage('Push Docker Image') {
             steps {
                 sh 'echo "Pushing Docker image to ECR..."'
@@ -170,7 +153,6 @@ pipeline {
                 echo "Docker image pushed successfully."
             }
         }
-
         stage('Manual Approval') {
             steps {
                 script {
@@ -181,11 +163,10 @@ pipeline {
                 }
             }
         }
-
         stage('Deploy to EKS Cluster') {
             steps {
                 script {
-                    // Read deploment file
+                    // Read deployment file
                     def deploymentFile = readFile('deployment.yaml')
 
                     // Replace image in YAML with latest image
@@ -200,21 +181,9 @@ pipeline {
                     sh "aws eks --region ${AWS_REGION} update-kubeconfig --name ${EKS_CLUSTER}"
                     sh "kubectl config current-context"
                     sh "kubectl get nodes"
-                    sh "kubectl apply -f deployment.yaml" // Deploy the application to EKS
-                    echo "Deployed to EKS Cluster."
+                    sh "kubectl apply -f deployment.yaml" // Apply the updated deployment
                 }
             }
         }
-        
     }
-    // post {
-    // always {
-    //     node { 
-    //         script {
-    //             echo "Cleaning up resources..."
-    //             sh 'docker system prune -af'
-    //         }
-    //     }
-    // }
-// }
 }
