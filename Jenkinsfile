@@ -1,4 +1,5 @@
 import groovy.json.JsonSlurper
+
 pipeline {
     agent { label "worker-node" }
     environment {
@@ -29,41 +30,48 @@ pipeline {
                 script {
                     withCredentials([[$class: 'VaultTokenCredentialBinding', credentialsId: env.VAULT_CREDENTIAL_ID, vaultAddr: env.VAULT_URL]]) {
                         // Prepare the payload for the AppRole login
-                def payload = """{
-                    "role_id": "${ROLE_ID}",
-                    "secret_id": "${SECRET_ID}"
-                }"""
+                        def payload = """{
+                            "role_id": "${ROLE_ID}",
+                            "secret_id": "${SECRET_ID}"
+                        }"""
 
-                // Make the POST request to login to Vault
-                def loginResponse = sh(script: """
-                    curl \
-                    --request POST \
-                    --data '${payload}' \
-                    ${env.VAULT_ADDR}/v1/auth/approle/login 
-                """, returnStdout: true)
+                        // Use withEnv to mask the VAULT_ADDR
+                        withEnv(["VAULT_ADDR=${VAULT_URL}"]) {
+                            // Make the POST request to login to Vault
+                            def loginResponse = sh(script: """
+                                curl \
+                                --request POST \
+                                --data '${payload}' \
+                                \$VAULT_ADDR/v1/auth/approle/login 
+                            """, returnStdout: true)
 
-                // Parse the JSON response using JsonSlurper
-                def jsonResponse = new JsonSlurper().parseText(loginResponse)
-                def vaultToken = jsonResponse.auth.client_token
-                        def secrets = [
-                            [path: 'secret/data/nghia-flask-app', secretValues: [
-                                [envVar: 'APP_NAME', vaultKey: 'app_name'],
-                                [envVar: 'BRANCH', vaultKey: 'branch'],
-                                [envVar: 'BUILD_ENV', vaultKey: 'build_env'],
-                                [envVar: 'ECR_REPOSITORY', vaultKey: 'ecr_repository'],
-                                [envVar: 'AWS_REGION', vaultKey: 'aws_region'],
-                                [envVar: 'AWS_ACCOUNT_ID', vaultKey: 'aws_account_id'],
-                                [envVar: 'EMAIL_RECIPIENT', vaultKey: 'email_recipient'],
-                                [envVar: 'APPROVER_EMAIL', vaultKey: 'approver_email'],
-                                [envVar: 'EKS_CLUSTER', vaultKey: 'eks_cluster'],
-                                [envVar: 'LOG_GROUP_NAME', vaultKey: 'log_group_name'],
-                                [envVar: 'LOG_STREAM_NAME', vaultKey: 'log_stream_name'],
-                                [envVar: 'SONAR_HOST_URL', vaultKey: 'sonar_host_url'],
-                                [envVar: 'SONARQUBE_TOKEN', vaultKey: 'sonar_token'] // Assuming you store the token in Vault
-                            ]]
-                        ]
-                        withVault([vaultSecrets: secrets]) {
-                            echo "Secrets retrieved from Vault."
+                            // Parse the JSON response using JsonSlurper
+                            def jsonResponse = new JsonSlurper().parseText(loginResponse)
+                            def vaultToken = jsonResponse.auth.client_token
+
+                            // Define secrets to retrieve
+                            def secrets = [
+                                [path: 'secret/data/nghia-flask-app', secretValues: [
+                                    [envVar: 'APP_NAME', vaultKey: 'app_name'],
+                                    [envVar: 'BRANCH', vaultKey: 'branch'],
+                                    [envVar: 'BUILD_ENV', vaultKey: 'build_env'],
+                                    [envVar: 'ECR_REPOSITORY', vaultKey: 'ecr_repository'],
+                                    [envVar: 'AWS_REGION', vaultKey: 'aws_region'],
+                                    [envVar: 'AWS_ACCOUNT_ID', vaultKey: 'aws_account_id'],
+                                    [envVar: 'EMAIL_RECIPIENT', vaultKey: 'email_recipient'],
+                                    [envVar: 'APPROVER_EMAIL', vaultKey: 'approver_email'],
+                                    [envVar: 'EKS_CLUSTER', vaultKey: 'eks_cluster'],
+                                    [envVar: 'LOG_GROUP_NAME', vaultKey: 'log_group_name'],
+                                    [envVar: 'LOG_STREAM_NAME', vaultKey: 'log_stream_name'],
+                                    [envVar: 'SONAR_HOST_URL', vaultKey: 'sonar_host_url'],
+                                    [envVar: 'SONARQUBE_TOKEN', vaultKey: 'sonar_token']
+                                ]]
+                            ]
+
+                            // Retrieve secrets from Vault
+                            withVault([vaultSecrets: secrets]) {
+                                echo "Secrets retrieved from Vault."
+                            }
                         }
                     }
                 }
