@@ -24,13 +24,22 @@ pipeline {
             steps {
                 script {
                     withCredentials([[$class: 'VaultTokenCredentialBinding', credentialsId: env.VAULT_CREDENTIAL_ID, vaultAddr: env.VAULT_URL]]) {
-                        def loginResponse = sh(script: """
-                            curl -s --request POST \
-                            --data '{\"role_id\": \"${ROLE_ID}\", \"secret_id\": \"${SECRET_ID}\"}' \
-                            ${VAULT_URL}/v1/auth/approle/login
-                        """, returnStdout: true)
-                        def jsonResponse = readJSON(text: loginResponse)
-                        def vaultToken = jsonResponse.auth.client_token
+                        // Prepare the payload for the AppRole login
+                def payload = """{
+                    "role_id": "${ROLE_ID}",
+                    "secret_id": "${SECRET_ID}"
+                }"""
+
+                // Make the POST request to login to Vault
+                def loginResponse = sh(script: """
+                    curl -s --request POST \
+                    --data '${payload}' \
+                    ${VAULT_URL}/v1/auth/approle/login
+                """, returnStdout: true)
+
+                // Parse the JSON response
+                def jsonResponse = readJSON(text: loginResponse)
+                def vaultToken = jsonResponse.auth.client_token
                         def secrets = [
                             [path: 'secret/data/nghia-flask-app', secretValues: [
                                 [envVar: 'APP_NAME', vaultKey: 'app_name'],
