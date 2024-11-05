@@ -24,26 +24,19 @@ pipeline {
         stage('Retrieve Secrets from Vault') {
             steps {
                 script {
-                    // Prepare the payload for the AppRole login
-                    def payload = """{
-                        "role_id": "${ROLE_ID}",
-                        "secret_id": "${SECRET_ID}"
-                    }"""
-
-                    // Make the POST request to login to Vault
+                    // Login to Vault and retrieve the token
                     def loginResponse = sh(script: """
-                        curl --request POST --data '${payload}' ${VAULT_URL}/v1/auth/approle/login
+                        curl --silent --request POST --data '{"role_id": "${ROLE_ID}", "secret_id": "${SECRET_ID}"}' ${VAULT_URL}/v1/auth/approle/login
                     """, returnStdout: true)
 
-                    // Extract the vault token using jq
-                    def vaultToken = sh(script: "echo '${loginResponse}' | jq -r '.auth.client_token'", returnStdout: true).trim()
+                    def vaultToken = sh(script: "echo '${loginResponse}' | jq -e -r '.auth.client_token'", returnStdout: true).trim()
 
-                    // Define the path to retrieve secrets
+                    // Retrieve secrets
                     def secretsResponse = sh(script: """
-                        curl --header "X-Vault-Token: ${vaultToken}" --request GET ${VAULT_URL}/v1/secret/data/nghia-flask-app
+                        curl --silent --header "X-Vault-Token: ${vaultToken}" --request GET ${VAULT_URL}/v1/secret/data/nghia-flask-app
                     """, returnStdout: true)
 
-                    // Extract secrets using jq
+                    // Set environment variables using jq
                     env.APP_NAME = sh(script: "echo '${secretsResponse}' | jq -e -r '.data.data.app_name'", returnStdout: true).trim()
                     env.BRANCH = sh(script: "echo '${secretsResponse}' | jq -e -r '.data.data.branch'", returnStdout: true).trim()
                     env.BUILD_ENV = sh(script: "echo '${secretsResponse}' | jq -e -r '.data.data.build_env'", returnStdout: true).trim()
@@ -58,7 +51,8 @@ pipeline {
                     env.SONAR_HOST_URL = sh(script: "echo '${secretsResponse}' | jq -e -r '.data.data.sonar_host_url'", returnStdout: true).trim()
                     env.SONARQUBE_TOKEN = sh(script: "echo '${secretsResponse}' | jq -e -r '.data.data.sonar_token'", returnStdout: true).trim()
 
-                    echo "Secrets retrieved from Vault."
+                    
+                    echo "Secrets retrieved: APP_NAME=${env.APP_NAME}, BRANCH=${env.BRANCH}, BUILD_ENV=${env.BUILD_ENV}, ECR_REPOSITORY=${env.ECR_REPOSITORY}, AWS_REGION=${env.AWS_REGION}, AWS_ACCOUNT_ID=${env.AWS_ACCOUNT_ID}, EMAIL_RECIPIENT=${env.EMAIL_RECIPIENT}, APPROVER_EMAIL=${env.APPROVER_EMAIL}, EKS_CLUSTER=${env.EKS_CLUSTER}, LOG_GROUP_NAME=${env.LOG_GROUP_NAME}, LOG_STREAM_NAME=${env.LOG_STREAM_NAME}, SONAR_HOST_URL=${env.SONAR_HOST_URL}"
                 }
             }
         }
