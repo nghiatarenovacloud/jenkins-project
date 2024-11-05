@@ -34,7 +34,7 @@ pipeline {
                 def loginResponse = sh(script: """
                     curl -s --request POST \
                     --data '${payload}' \
-                    ${VAULT_URL}/v1/auth/approle/login
+                    ${env.VAULT_URL}/v1/auth/approle/login
                 """, returnStdout: true)
 
                 // Parse the JSON response
