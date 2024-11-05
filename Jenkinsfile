@@ -17,8 +17,6 @@ pipeline {
         VAULT_URL = "http://10.0.11.41:8200" // Vault URL
         ROLE_ID = "9b5aea52-68df-b9bf-08f6-de4b0a44e527" // 
         SECRET_ID = "42d267fb-23e7-6958-3874-53763bcc3c71" // 
-        // SONAR_HOST_URL= "https://binh-sonar.renovacloud.io"
-        // SONARQUBE_TOKEN= "ad8c397df32a2156d42f184ccf9dd790c37f2cff"
     }
     stages {
         stage('Retrieve Secrets from Vault') {
@@ -51,8 +49,7 @@ pipeline {
                     env.SONAR_HOST_URL = sh(script: "echo '${secretsResponse}' | jq -e -r '.data.data.sonar_host_url'", returnStdout: true).trim()
                     env.SONARQUBE_TOKEN = sh(script: "echo '${secretsResponse}' | jq -e -r '.data.data.sonar_token'", returnStdout: true).trim()
 
-                    
-                    echo "Secrets retrieved: APP_NAME=${env.APP_NAME}, BRANCH=${env.BRANCH}, BUILD_ENV=${env.BUILD_ENV}, ECR_REPOSITORY=${env.ECR_REPOSITORY}, AWS_REGION=${env.AWS_REGION}, AWS_ACCOUNT_ID=${env.AWS_ACCOUNT_ID}, EMAIL_RECIPIENT=${env.EMAIL_RECIPIENT}, APPROVER_EMAIL=${env.APPROVER_EMAIL}, EKS_CLUSTER=${env.EKS_CLUSTER}, LOG_GROUP_NAME=${env.LOG_GROUP_NAME}, LOG_STREAM_NAME=${env.LOG_STREAM_NAME}, SONAR_HOST_URL=${env.SONAR_HOST_URL}"
+                    echo "Secrets retrieved: APP_NAME=${env.APP_NAME}, BRANCH=${env.BRANCH}, BUILD_ENV=${env.BUILD_ENV}, ECR_REPOSITORY=${env.ECR_REPOSITORY}, AWS_REGION=${env.AWS_REGION}, AWS_ACCOUNT_ID=${env.AWS_ACCOUNT_ID}, EMAIL_RECIPIENT=${env.EMAIL_RECIPIENT}, APPROVER_EMAIL=${env.APPROVER_EMAIL}, EKS_CLUSTER=${env.EKS_CLUSTER}, LOG_GROUP_NAME=${env.LOG_GROUP_NAME}, LOG_STREAM_NAME=${env.LOG_STREAM_NAME}, SONAR_HOST_URL=${env.SONAR_HOST_URL}, SONARQUBE_TOKEN=${env.SONARQUBE_TOKEN}"
                 }
             }
         }
