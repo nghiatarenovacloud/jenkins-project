@@ -16,12 +16,17 @@ pipeline {
         LOG_STREAM_NAME = "${env.LOG_STREAM_NAME}"
         VAULT_URL = "http://10.0.11.41:8200" // Vault URL
         VAULT_CREDENTIAL_ID = "nghia-jenkins-approle" // Jenkins credential ID for Vault
+        ROLE_ID = "9b5aea52-68df-b9bf-08f6-de4b0a44e527" // 
+        SECRET_ID = "42d267fb-23e7-6958-3874-53763bcc3c71" // 
     }
     stages {
         stage('Retrieve Secrets from Vault') {
             steps {
                 script {
                     withCredentials([[$class: 'VaultTokenCredentialBinding', credentialsId: env.VAULT_CREDENTIAL_ID, vaultAddr: env.VAULT_URL]]) {
+                        def loginResponse = sh(script: "curl -s --request POST --data '{\"role_id\": \"${ROLE_ID}\", \"secret_id\": \"${SECRET_ID}\"}' ${VAULT_URL}/v1/auth/approle/login", returnStdout: true)
+                        def jsonResponse = readJSON(text: loginResponse)
+                        def vaultToken = jsonResponse.auth.client_token
                         def secrets = [
                             [path: 'secret/data/nghia-flask-app', secretValues: [
                                 [envVar: 'APP_NAME', vaultKey: 'app_name'],
