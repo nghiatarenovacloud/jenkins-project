@@ -7,7 +7,7 @@ pipeline {
         ECR_REPOSITORY = "${env.ECR_REPOSITORY}"
         AWS_REGION = "${env.AWS_REGION}"
         AWS_ACCOUNT_ID = "${env.AWS_ACCOUNT_ID}"
-        COMMIT_ID = "${env.GIT_COMMIT.substring(0, 7)}" // Get the first 7 characters of the commit ID
+        COMMIT_ID = "${GIT_COMMIT.substring(0, 7)}" // Get the first 7 characters of the commit ID
         IMAGE_TAG = "${new Date().format('HH-dd-MM-yy')}-${COMMIT_ID}" // Format tag for image
         EMAIL_RECIPIENT = "${env.EMAIL_RECIPIENT}"
         APPROVER_EMAIL = "${env.APPROVER_EMAIL}"
@@ -23,7 +23,7 @@ pipeline {
                 script {
                     withCredentials([[$class: 'VaultTokenCredentialBinding', credentialsId: env.VAULT_CREDENTIAL_ID, vaultAddr: env.VAULT_URL]]) {
                         def secrets = [
-                            [path: 'secret/myapp', secretValues: [
+                            [path: 'secret/data/nghia-flask-app', secretValues: [
                                 [envVar: 'APP_NAME', vaultKey: 'app_name'],
                                 [envVar: 'BRANCH', vaultKey: 'branch'],
                                 [envVar: 'BUILD_ENV', vaultKey: 'build_env'],
