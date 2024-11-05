@@ -38,11 +38,11 @@ pipeline {
                     curl \
                     --request POST \
                     --data '${payload}' \
-                    http://10.0.11.41:8200/v1/auth/approle/login 
+                    ${env.VAULT_ADDR}/v1/auth/approle/login 
                 """, returnStdout: true)
 
-                // Parse the JSON response
-                def jsonResponse = readJSON(text: loginResponse)
+                // Parse the JSON response using JsonSlurper
+                def jsonResponse = new JsonSlurper().parseText(loginResponse)
                 def vaultToken = jsonResponse.auth.client_token
                         def secrets = [
                             [path: 'secret/data/nghia-flask-app', secretValues: [
