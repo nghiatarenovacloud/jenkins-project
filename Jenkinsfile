@@ -1,29 +1,57 @@
 pipeline {
     agent { label "worker-node" }
     environment {
-        APP_NAME = "jenkins-flask-app"
-        BRANCH = "main"
-        BUILD_ENV = "dev"
-        ECR_REPOSITORY = "nghia-cicd-jenkins"
-        AWS_REGION = "ap-southeast-1"
-        AWS_ACCOUNT_ID = "879654127886"
+        APP_NAME = "${env.APP_NAME}"
+        BRANCH = "${env.BRANCH}"
+        BUILD_ENV = "${env.BUILD_ENV}"
+        ECR_REPOSITORY = "${env.ECR_REPOSITORY}"
+        AWS_REGION = "${env.AWS_REGION}"
+        AWS_ACCOUNT_ID = "${env.AWS_ACCOUNT_ID}"
         COMMIT_ID = "${env.GIT_COMMIT.substring(0, 7)}" // Get the first 7 characters of the commit ID
         IMAGE_TAG = "${new Date().format('HH-dd-MM-yy')}-${COMMIT_ID}" // Format tag for image
-        EMAIL_RECIPIENT = "nghia.ta@renovacloud.com"
-        APPROVER_EMAIL = "nghia.ta@renovacloud.com"
-        EKS_CLUSTER = "nghia-test-eks"
-        LOG_GROUP_NAME = 'nghia-jenkins-ci'
-        LOG_STREAM_NAME = 'nghia-jenkins-ci-application'
-        SONAR_HOST_URL = "https://binh-sonar.renovacloud.io"
-        SONARQUBE_TOKEN = credentials('jenkins-sonarque') // Jenkins credentials for SonarQube token
+        EMAIL_RECIPIENT = "${env.EMAIL_RECIPIENT}"
+        APPROVER_EMAIL = "${env.APPROVER_EMAIL}"
+        EKS_CLUSTER = "${env.EKS_CLUSTER}"
+        LOG_GROUP_NAME = "${env.LOG_GROUP_NAME}"
+        LOG_STREAM_NAME = "${env.LOG_STREAM_NAME}"
+        VAULT_URL = "https://vault.company.io" // Vault URL
+        VAULT_CREDENTIAL_ID = "nghia-jenkins-approle" // Jenkins credential ID for Vault
     }
     stages {
+        stage('Retrieve Secrets from Vault') {
+            steps {
+                script {
+                    withCredentials([[$class: 'VaultTokenCredentialBinding', credentialsId: env.VAULT_CREDENTIAL_ID, vaultAddr: env.VAULT_URL]]) {
+                        def secrets = [
+                            [path: 'secret/myapp', secretValues: [
+                                [envVar: 'APP_NAME', vaultKey: 'app_name'],
+                                [envVar: 'BRANCH', vaultKey: 'branch'],
+                                [envVar: 'BUILD_ENV', vaultKey: 'build_env'],
+                                [envVar: 'ECR_REPOSITORY', vaultKey: 'ecr_repository'],
+                                [envVar: 'AWS_REGION', vaultKey: 'aws_region'],
+                                [envVar: 'AWS_ACCOUNT_ID', vaultKey: 'aws_account_id'],
+                                [envVar: 'EMAIL_RECIPIENT', vaultKey: 'email_recipient'],
+                                [envVar: 'APPROVER_EMAIL', vaultKey: 'approver_email'],
+                                [envVar: 'EKS_CLUSTER', vaultKey: 'eks_cluster'],
+                                [envVar: 'LOG_GROUP_NAME', vaultKey: 'log_group_name'],
+                                [envVar: 'LOG_STREAM_NAME', vaultKey: 'log_stream_name'],
+                                [envVar: 'SONAR_HOST_URL', vaultKey: 'sonar_host_url'],
+                                [envVar: 'SONARQUBE_TOKEN', vaultKey: 'sonar_token'] // Assuming you store the token in Vault
+                            ]]
+                        ]
+                        withVault([vaultSecrets: secrets]) {
+                            echo "Secrets retrieved from Vault."
+                        }
+                    }
+                }
+            }
+        }
         stage('Checkout') {
             steps {
                 sh "ls" // List files for verification
             }
         }
-            stage('Setup Environment and Install Dependencies') {
+        stage('Setup Environment and Install Dependencies') {
             steps {
                 script {
                     try {
@@ -67,30 +95,32 @@ pipeline {
             }
         }
         stage('Static Code Analysis with SonarQube') {
-    steps {
-        script {
-            writeFile file: 'pyproject.toml', text: '''
-            [tool.sonar]
-            projectKey = "jenkins-flask-app"
-            sources = "app.py, test_app.py, templates/index.html"
-            exclusions = "**/*.md, **/*.sh, **/*.yaml, **/*.zip, **/__pycache__/**"
-            '''
-            withCredentials([string(credentialsId: 'jenkins-sonarque', variable: 'SONARQUBE_TOKEN')]) {
-                withEnv(["SONAR_HOST_URL=${SONAR_HOST_URL}"]) {
+            steps {
+                script {
+                    // Create the pyproject.toml file
+                    writeFile file: 'pyproject.toml', text: '''
+                    [tool.sonar]
+                    projectKey = "jenkins-flask-app"
+                    sources = "app.py, test_app.py, templates/index.html"
+                    exclusions = "**/*.md, **/*.sh, **/*.yaml, **/*.zip, **/__pycache__/**"
+                    '''
+                    
+                    // Run SonarQube analysis with the retrieved credentials
                     try {
-                        sh '''
-                            . venv/bin/activate  # Activate the virtual environment
-                            ./venv/bin/pysonar-scanner -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONARQUBE_TOKEN
-                        '''
+                        withCredentials([string(credentialsId: 'jenkins-sonarque', variable: 'SONARQUBE_TOKEN')]) {
+                            withEnv(["SONAR_HOST_URL=${SONAR_HOST_URL}"]) {
+                                sh '''
+                                    . venv/bin/activate  # Activate the virtual environment
+                                    ./venv/bin/pysonar-scanner -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONARQUBE_TOKEN
+                                '''
+                            }
+                        }
                     } catch (Exception e) {
                         error "SonarQube analysis failed: ${e.message}"
                     }
                 }
             }
         }
-    }
-}
-        
         stage('Build Docker Image') {
             steps {
                 script {
@@ -105,7 +135,6 @@ pipeline {
                 }
             }
         }
-        
         stage('Login to ECR') {
             steps {
                 script {
@@ -150,8 +179,8 @@ pipeline {
                     def newImage = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${IMAGE_TAG}"
                     deploymentFile = deploymentFile.replaceAll(/(?<=image: ).*/, newImage)
                     writeFile file: 'deployment.yaml', text: deploymentFile
-                    sh "aws eks --region ${AWS_REGION} update-kubeconfig --name ${EKS_CLUSTER}"
-                    sh "kubectl apply -f deployment.yaml" // Apply the updated deployment
+                    // Add kubectl commands to deploy to EKS
+                    sh "kubectl apply -f deployment.yaml --context=${EKS_CLUSTER}"
                 }
             }
         }
