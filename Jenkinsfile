@@ -14,7 +14,7 @@ pipeline {
         EKS_CLUSTER = "${env.EKS_CLUSTER}"
         LOG_GROUP_NAME = "${env.LOG_GROUP_NAME}"
         LOG_STREAM_NAME = "${env.LOG_STREAM_NAME}"
-        VAULT_URL = "https://vault.company.io" // Vault URL
+        VAULT_URL = "http://10.0.11.41:8200" // Vault URL
         VAULT_CREDENTIAL_ID = "nghia-jenkins-approle" // Jenkins credential ID for Vault
     }
     stages {
