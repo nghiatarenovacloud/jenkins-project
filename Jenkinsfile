@@ -51,7 +51,7 @@ pipeline {
 
                             // Define secrets to retrieve
                             def secrets = [
-                                [path: 'secret/data/nghia-flask-app', secretValues: [
+                                [path: 'secret/nghia-flask-app', secretValues: [
                                     [envVar: 'APP_NAME', vaultKey: 'app_name'],
                                     [envVar: 'BRANCH', vaultKey: 'branch'],
                                     [envVar: 'BUILD_ENV', vaultKey: 'build_env'],
