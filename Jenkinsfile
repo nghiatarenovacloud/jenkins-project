@@ -17,8 +17,8 @@ pipeline {
         VAULT_URL = "http://10.0.11.41:8200" // Vault URL
         ROLE_ID = "9b5aea52-68df-b9bf-08f6-de4b0a44e527" // 
         SECRET_ID = "42d267fb-23e7-6958-3874-53763bcc3c71" // 
-        SONAR_HOST_URL= "https://binh-sonar.renovacloud.io"
-        SONARQUBE_TOKEN= "ad8c397df32a2156d42f184ccf9dd790c37f2cff"
+        // SONAR_HOST_URL= "https://binh-sonar.renovacloud.io"
+        // SONARQUBE_TOKEN= "ad8c397df32a2156d42f184ccf9dd790c37f2cff"
     }
     stages {
         stage('Retrieve Secrets from Vault') {
@@ -44,19 +44,19 @@ pipeline {
                     """, returnStdout: true)
 
                     // Extract secrets using jq
-                    env.APP_NAME = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.app_name'", returnStdout: true).trim()
-                    env.BRANCH = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.branch'", returnStdout: true).trim()
-                    env.BUILD_ENV = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.build_env'", returnStdout: true).trim()
-                    env.ECR_REPOSITORY = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.ecr_repository'", returnStdout: true).trim()
-                    env.AWS_REGION = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.aws_region'", returnStdout: true).trim()
-                    env.AWS_ACCOUNT_ID = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.aws_account_id'", returnStdout: true).trim()
-                    env.EMAIL_RECIPIENT = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.email_recipient'", returnStdout: true).trim()
-                    env.APPROVER_EMAIL = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.approver_email'", returnStdout: true).trim()
-                    env.EKS_CLUSTER = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.eks_cluster'", returnStdout: true).trim()
-                    env.LOG_GROUP_NAME = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.log_group_name'", returnStdout: true).trim()
-                    env.LOG_STREAM_NAME = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.log_stream_name'", returnStdout: true).trim()
-                    env.SONAR_HOST_URL = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.sonar_host_url'", returnStdout: true).trim()
-                    env.SONARQUBE_TOKEN = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.sonar_token'", returnStdout: true).trim()
+                    env.APP_NAME = sh(script: "echo '${secretsResponse}' | jq -e -r '.data.data.app_name'", returnStdout: true).trim()
+                    env.BRANCH = sh(script: "echo '${secretsResponse}' | jq -e -r '.data.data.branch'", returnStdout: true).trim()
+                    env.BUILD_ENV = sh(script: "echo '${secretsResponse}' | jq -e -r '.data.data.build_env'", returnStdout: true).trim()
+                    env.ECR_REPOSITORY = sh(script: "echo '${secretsResponse}' | jq -e -r '.data.data.ecr_repository'", returnStdout: true).trim()
+                    env.AWS_REGION = sh(script: "echo '${secretsResponse}' | jq -e -r '.data.data.aws_region'", returnStdout: true).trim()
+                    env.AWS_ACCOUNT_ID = sh(script: "echo '${secretsResponse}' | jq -e -r '.data.data.aws_account_id'", returnStdout: true).trim()
+                    env.EMAIL_RECIPIENT = sh(script: "echo '${secretsResponse}' | jq -e -r '.data.data.email_recipient'", returnStdout: true).trim()
+                    env.APPROVER_EMAIL = sh(script: "echo '${secretsResponse}' | jq -e -r '.data.data.approver_email'", returnStdout: true).trim()
+                    env.EKS_CLUSTER = sh(script: "echo '${secretsResponse}' | jq -e -r '.data.data.eks_cluster'", returnStdout: true).trim()
+                    env.LOG_GROUP_NAME = sh(script: "echo '${secretsResponse}' | jq -e -r '.data.data.log_group_name'", returnStdout: true).trim()
+                    env.LOG_STREAM_NAME = sh(script: "echo '${secretsResponse}' | jq -e -r '.data.data.log_stream_name'", returnStdout: true).trim()
+                    env.SONAR_HOST_URL = sh(script: "echo '${secretsResponse}' | jq -e -r '.data.data.sonar_host_url'", returnStdout: true).trim()
+                    env.SONARQUBE_TOKEN = sh(script: "echo '${secretsResponse}' | jq -e -r '.data.data.sonar_token'", returnStdout: true).trim()
 
                     echo "Secrets retrieved from Vault."
                 }
