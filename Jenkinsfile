@@ -42,8 +42,8 @@ pipeline {
                 """, returnStdout: true)
 
                 // Parse the JSON response using JsonSlurper
-                def jsonResponse = new JsonSlurper().parseText(loginResponse)
-                def vaultToken = jsonResponse.auth.client_token
+                // def jsonResponse = new JsonSlurper().parseText(loginResponse)
+                // def vaultToken = jsonResponse.auth.client_token
                         def secrets = [
                             [path: 'secret/data/nghia-flask-app', secretValues: [
                                 [envVar: 'APP_NAME', vaultKey: 'app_name'],
