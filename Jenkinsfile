@@ -38,7 +38,7 @@ pipeline {
                     curl \
                     --request POST \
                     --data '${payload}' \
-                    http://10.0.11.41:8200/v1/auth/approle/login | jq
+                    http://10.0.11.41:8200/v1/auth/approle/login 
                 """, returnStdout: true)
 
                 // Parse the JSON response
