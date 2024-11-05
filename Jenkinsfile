@@ -18,6 +18,9 @@ pipeline {
         VAULT_CREDENTIAL_ID = "nghia-jenkins-approle" // Jenkins credential ID for Vault
         ROLE_ID = "9b5aea52-68df-b9bf-08f6-de4b0a44e527" // 
         SECRET_ID = "42d267fb-23e7-6958-3874-53763bcc3c71" // 
+        SONAR_HOST_URL= "https://binh-sonar.renovacloud.io"
+        SONARQUBE_TOKEN= "ad8c397df32a2156d42f184ccf9dd790c37f2cff"
+
     }
     stages {
         stage('Retrieve Secrets from Vault') {
@@ -32,9 +35,10 @@ pipeline {
 
                 // Make the POST request to login to Vault
                 def loginResponse = sh(script: """
-                    curl -s --request POST \
+                    curl \
+                    --request POST \
                     --data '${payload}' \
-                    ${env.VAULT_URL}/v1/auth/approle/login
+                    http://10.0.11.41:8200/v1/auth/approle/login
                 """, returnStdout: true)
 
                 // Parse the JSON response
