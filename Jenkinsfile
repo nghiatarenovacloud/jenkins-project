@@ -1,5 +1,3 @@
-import groovy.json.JsonSlurper
-
 pipeline {
     agent { label "worker-node" }
     environment {
@@ -17,63 +15,50 @@ pipeline {
         LOG_GROUP_NAME = "${env.LOG_GROUP_NAME}"
         LOG_STREAM_NAME = "${env.LOG_STREAM_NAME}"
         VAULT_URL = "http://10.0.11.41:8200" // Vault URL
-        VAULT_CREDENTIAL_ID = "nghia-jenkins-approle" // Jenkins credential ID for Vault
         ROLE_ID = "9b5aea52-68df-b9bf-08f6-de4b0a44e527" // 
         SECRET_ID = "42d267fb-23e7-6958-3874-53763bcc3c71" // 
         SONAR_HOST_URL= "https://binh-sonar.renovacloud.io"
         SONARQUBE_TOKEN= "ad8c397df32a2156d42f184ccf9dd790c37f2cff"
-
     }
     stages {
         stage('Retrieve Secrets from Vault') {
             steps {
                 script {
-                    withCredentials([[$class: 'VaultTokenCredentialBinding', credentialsId: env.VAULT_CREDENTIAL_ID, vaultAddr: env.VAULT_URL]]) {
-                        // Prepare the payload for the AppRole login
-                        def payload = """{
-                            "role_id": "${ROLE_ID}",
-                            "secret_id": "${SECRET_ID}"
-                        }"""
+                    // Prepare the payload for the AppRole login
+                    def payload = """{
+                        "role_id": "${ROLE_ID}",
+                        "secret_id": "${SECRET_ID}"
+                    }"""
 
-                        // Use withEnv to mask the VAULT_ADDR
-                        withEnv(["VAULT_ADDR=${VAULT_URL}"]) {
-                            // Make the POST request to login to Vault
-                            def loginResponse = sh(script: """
-                                curl \
-                                --request POST \
-                                --data '${payload}' \
-                                \$VAULT_ADDR/v1/auth/approle/login 
-                            """, returnStdout: true)
+                    // Make the POST request to login to Vault
+                    def loginResponse = sh(script: """
+                        curl --request POST --data '${payload}' ${VAULT_URL}/v1/auth/approle/login
+                    """, returnStdout: true)
 
-                            // Parse the JSON response using JsonSlurper
-                            def jsonResponse = new JsonSlurper().parseText(loginResponse)
-                            def vaultToken = jsonResponse.auth.client_token
+                    // Extract the vault token using jq
+                    def vaultToken = sh(script: "echo '${loginResponse}' | jq -r '.auth.client_token'", returnStdout: true).trim()
 
-                            // Define secrets to retrieve
-                            def secrets = [
-                                [path: 'secret/nghia-flask-app', secretValues: [
-                                    [envVar: 'APP_NAME', vaultKey: 'app_name'],
-                                    [envVar: 'BRANCH', vaultKey: 'branch'],
-                                    [envVar: 'BUILD_ENV', vaultKey: 'build_env'],
-                                    [envVar: 'ECR_REPOSITORY', vaultKey: 'ecr_repository'],
-                                    [envVar: 'AWS_REGION', vaultKey: 'aws_region'],
-                                    [envVar: 'AWS_ACCOUNT_ID', vaultKey: 'aws_account_id'],
-                                    [envVar: 'EMAIL_RECIPIENT', vaultKey: 'email_recipient'],
-                                    [envVar: 'APPROVER_EMAIL', vaultKey: 'approver_email'],
-                                    [envVar: 'EKS_CLUSTER', vaultKey: 'eks_cluster'],
-                                    [envVar: 'LOG_GROUP_NAME', vaultKey: 'log_group_name'],
-                                    [envVar: 'LOG_STREAM_NAME', vaultKey: 'log_stream_name'],
-                                    [envVar: 'SONAR_HOST_URL', vaultKey: 'sonar_host_url'],
-                                    [envVar: 'SONARQUBE_TOKEN', vaultKey: 'sonar_token']
-                                ]]
-                            ]
+                    // Define the path to retrieve secrets
+                    def secretsResponse = sh(script: """
+                        curl --header "X-Vault-Token: ${vaultToken}" --request GET ${VAULT_URL}/v1/secret/data/nghia-flask-app
+                    """, returnStdout: true)
 
-                            // Retrieve secrets from Vault
-                            withVault([vaultSecrets: secrets]) {
-                                echo "Secrets retrieved from Vault."
-                            }
-                        }
-                    }
+                    // Extract secrets using jq
+                    env.APP_NAME = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.app_name'", returnStdout: true).trim()
+                    env.BRANCH = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.branch'", returnStdout: true).trim()
+                    env.BUILD_ENV = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.build_env'", returnStdout: true).trim()
+                    env.ECR_REPOSITORY = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.ecr_repository'", returnStdout: true).trim()
+                    env.AWS_REGION = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.aws_region'", returnStdout: true).trim()
+                    env.AWS_ACCOUNT_ID = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.aws_account_id'", returnStdout: true).trim()
+                    env.EMAIL_RECIPIENT = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.email_recipient'", returnStdout: true).trim()
+                    env.APPROVER_EMAIL = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.approver_email'", returnStdout: true).trim()
+                    env.EKS_CLUSTER = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.eks_cluster'", returnStdout: true).trim()
+                    env.LOG_GROUP_NAME = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.log_group_name'", returnStdout: true).trim()
+                    env.LOG_STREAM_NAME = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.log_stream_name'", returnStdout: true).trim()
+                    env.SONAR_HOST_URL = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.sonar_host_url'", returnStdout: true).trim()
+                    env.SONARQUBE_TOKEN = sh(script: "echo '${secretsResponse}' | jq -r '.data.data.sonar_token'", returnStdout: true).trim()
+
+                    echo "Secrets retrieved from Vault."
                 }
             }
         }
